@@ -14,7 +14,6 @@ import com.nox.integration.support.ContractAssertions;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
@@ -37,7 +36,7 @@ class PartnerLinkApprovalIT extends PartnerLinkIntegrationSupport {
         String userMessages = queues.bind(EVENTS_EXCHANGE, APPROVED);
         String partnerMessages = queues.bind(WEBHOOKS_EXCHANGE, APPROVED);
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
 
         EntityExchangeResult<String> approved = api.postAsInternalBff(link.userId(), link.path() + "/approve");
 
@@ -75,7 +74,7 @@ class PartnerLinkApprovalIT extends PartnerLinkIntegrationSupport {
     @Test
     void approvingTwiceIsNotActionable() {
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
         api.postAsInternalBff(link.userId(), link.path() + "/approve");
 
         EntityExchangeResult<String> again = api.postAsInternalBff(link.userId(), link.path() + "/approve");
@@ -86,7 +85,7 @@ class PartnerLinkApprovalIT extends PartnerLinkIntegrationSupport {
 
     @Test
     void anotherUsersLinkIsNotFound() {
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        Link link = scenarios.pendingLink(partner);
 
         EntityExchangeResult<String> result =
                 api.postAsInternalBff(UUID.randomUUID().toString(), link.path() + "/approve");

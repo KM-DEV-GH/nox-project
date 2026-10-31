@@ -105,7 +105,6 @@ public class InMemoryPartnerLinkRepository implements PartnerLinkRepository {
         return PartnerLink.restore(
                 link.id(),
                 link.userId(),
-                link.userKeycloakId(),
                 link.partnerId(),
                 link.partnerExternalId(),
                 link.licenseeId(),

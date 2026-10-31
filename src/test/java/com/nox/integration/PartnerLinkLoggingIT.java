@@ -9,7 +9,6 @@ import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.OwlWireMockSupport;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -40,7 +39,7 @@ class PartnerLinkLoggingIT extends PartnerLinkIntegrationSupport {
         String bff = TOKENS.bff();
         String email = OwlWireMockSupport.uniqueEmail();
         String userId = UUID.randomUUID().toString();
-        owl.userFound(email, userId, TestTokens.subjectOf(alice));
+        owl.userFound(email, userId);
 
         EntityExchangeResult<String> accepted =
                 api.submit(partner, UUID.randomUUID().toString(), "external-1", email);

@@ -10,7 +10,6 @@ import com.nox.integration.support.ContractAssertions;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.client.EntityExchangeResult;
@@ -24,7 +23,7 @@ class PartnerLinkRevocationIT extends PartnerLinkIntegrationSupport {
         String userMessages = queues.bind("partnerlink.events", "#");
         String partnerMessages = queues.bind("partnerlink.webhooks", "#");
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
         api.postAsInternalBff(link.userId(), link.path() + "/approve");
         queues.collect(userMessages, message -> true, Duration.ofSeconds(1));
         queues.collect(partnerMessages, message -> true, Duration.ofSeconds(1));
@@ -56,8 +55,8 @@ class PartnerLinkRevocationIT extends PartnerLinkIntegrationSupport {
     @Test
     void revokingTwiceOrAnUndecidedLinkIsNotActionable() {
         String alice = TOKENS.user("alice");
-        Link connected = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
-        Link pending = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link connected = scenarios.pendingLink(partner);
+        Link pending = scenarios.pendingLink(partner);
         api.postAsInternalBff(connected.userId(), connected.path() + "/approve");
         api.postAsInternalBff(connected.userId(), connected.path() + "/revoke");
 

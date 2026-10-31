@@ -53,11 +53,7 @@ class PartnerLinkRequestOwlOutageIT extends KeycloakContainerSupport {
     @Test
     void aTimeoutIsRetriedAndTheLinkCreatedAfterRecovery() {
         String email = OwlWireMockSupport.uniqueEmail();
-        owl.timesOutThenFinds(
-                email,
-                Duration.ofSeconds(3),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString());
+        owl.timesOutThenFinds(email, Duration.ofSeconds(3), UUID.randomUUID().toString());
 
         long started = System.nanoTime();
         EntityExchangeResult<String> accepted =

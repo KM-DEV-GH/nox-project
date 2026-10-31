@@ -9,7 +9,6 @@ import com.nox.integration.support.ContractAssertions;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +26,7 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
 
     @Test
     void knownAndUnknownEmailsReportTheSameStatusBeforeAndAfterTheDeadline() {
-        Link known = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        Link known = scenarios.pendingLink(partner);
         PartnerLinkRequest unknown = scenarios.unknownEmailRequest(partner);
 
         assertSameStatus(known.requestId(), unknown.id(), "PROCESSING");
@@ -38,8 +37,8 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
     @Test
     void theRequestReportsTheUsersDecision() {
         String alice = TOKENS.user("alice");
-        Link approved = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
-        Link rejected = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link approved = scenarios.pendingLink(partner);
+        Link rejected = scenarios.pendingLink(partner);
 
         api.postAsInternalBff(approved.userId(), approved.path() + "/approve");
         api.postAsInternalBff(rejected.userId(), rejected.path() + "/reject");
@@ -51,9 +50,9 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
     @Test
     void partnersReadOnlyEstablishedLinks() {
         String alice = TOKENS.user("alice");
-        Link pending = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
-        Link rejected = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
-        Link connected = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link pending = scenarios.pendingLink(partner);
+        Link rejected = scenarios.pendingLink(partner);
+        Link connected = scenarios.pendingLink(partner);
         api.postAsInternalBff(rejected.userId(), rejected.path() + "/reject");
         api.postAsInternalBff(connected.userId(), connected.path() + "/approve");
 
@@ -69,7 +68,7 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
             assertNotFound(partner, PartnerLinkApi.PARTNER_LINKS + "/" + hidden.linkId());
             assertNotFound(partner, PartnerLinkApi.PARTNER_LINKS + "/by-external/" + hidden.externalId());
         }
-        Link expiring = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link expiring = scenarios.pendingLink(partner);
         clock.advance(PAST_DEADLINE);
         api.postAsInternalBff(expiring.userId(), expiring.path() + "/approve");
         assertNotFound(partner, PartnerLinkApi.PARTNER_LINKS + "/" + expiring.linkId());
@@ -78,7 +77,7 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
     @Test
     void anotherPartnerReadsNothing() {
         String alice = TOKENS.user("alice");
-        Link connected = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link connected = scenarios.pendingLink(partner);
         api.postAsInternalBff(connected.userId(), connected.path() + "/approve");
         Partner other = partners.active();
 
@@ -91,8 +90,8 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
     void byExternalIdReturnsTheMostRecentlyCreatedLink() {
         String alice = TOKENS.user("alice");
         String externalId = "external-" + UUID.randomUUID();
-        Link older = scenarios.pendingLink(partner, TestTokens.subjectOf(alice), externalId);
-        Link newer = scenarios.pendingLink(partner, TestTokens.subjectOf(alice), externalId);
+        Link older = scenarios.pendingLink(partner, externalId);
+        Link newer = scenarios.pendingLink(partner, externalId);
         api.postAsInternalBff(older.userId(), older.path() + "/approve");
         api.postAsInternalBff(newer.userId(), newer.path() + "/approve");
 
@@ -105,13 +104,10 @@ class PartnerLinkStatusQueryIT extends PartnerLinkIntegrationSupport {
 
     @Test
     void theUserSeesEveryOneOfTheirLinksWithItsCurrentStatus() {
-        String aliceKeycloakId = TestTokens.subjectOf(TOKENS.user("alice"));
         String alice = UUID.randomUUID().toString();
-        Link connected = scenarios.pendingLink(partner, aliceKeycloakId, "external-" + UUID.randomUUID(), alice);
-        Link rejected =
-                scenarios.pendingLink(partners.active(), aliceKeycloakId, "external-" + UUID.randomUUID(), alice);
-        Link pending =
-                scenarios.pendingLink(partners.active(), aliceKeycloakId, "external-" + UUID.randomUUID(), alice);
+        Link connected = scenarios.pendingLink(partner, "external-" + UUID.randomUUID(), alice);
+        Link rejected = scenarios.pendingLink(partners.active(), "external-" + UUID.randomUUID(), alice);
+        Link pending = scenarios.pendingLink(partners.active(), "external-" + UUID.randomUUID(), alice);
         api.postAsInternalBff(alice, connected.path() + "/approve");
         api.postAsInternalBff(alice, rejected.path() + "/reject");
 

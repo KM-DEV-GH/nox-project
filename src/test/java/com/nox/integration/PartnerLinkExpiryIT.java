@@ -10,7 +10,6 @@ import com.nox.domain.partnerlink.PartnerLinkStatus;
 import com.nox.domain.partnerlink.TransitionReason;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -32,7 +31,7 @@ class PartnerLinkExpiryIT extends PartnerLinkIntegrationSupport {
     void aLateDecisionIsRefusedAndTheExpiryRecorded(String action) {
         String userMessages = queues.bind("partnerlink.events", "#");
         String partnerMessages = queues.bind("partnerlink.webhooks", "#");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        Link link = scenarios.pendingLink(partner);
         clock.advance(PAST_DEADLINE);
 
         EntityExchangeResult<String> late = api.postAsInternalBff(link.userId(), link.path() + "/" + action);
@@ -56,7 +55,7 @@ class PartnerLinkExpiryIT extends PartnerLinkIntegrationSupport {
 
     @Test
     void aSecondLateDecisionAddsNoFurtherEntry() {
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        Link link = scenarios.pendingLink(partner);
         clock.advance(PAST_DEADLINE);
         api.postAsInternalBff(link.userId(), link.path() + "/approve");
 
@@ -68,7 +67,7 @@ class PartnerLinkExpiryIT extends PartnerLinkIntegrationSupport {
 
     @Test
     void anUndecidedLinkPastItsDeadlineReadsAsExpiredWithoutAWrite() {
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        Link link = scenarios.pendingLink(partner);
         clock.advance(PAST_DEADLINE);
 
         PartnerLink stored = links.findById(link.linkId()).orElseThrow();

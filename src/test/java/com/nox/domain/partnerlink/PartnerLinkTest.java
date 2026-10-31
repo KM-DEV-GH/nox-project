@@ -138,21 +138,13 @@ class PartnerLinkTest {
 
     private static PartnerLink pending() {
         return PartnerLink.pending(
-                UUID.randomUUID(),
-                "user-1",
-                "keycloak-1",
-                UUID.randomUUID(),
-                "external-1",
-                "licensee-1",
-                DEADLINE,
-                CREATED);
+                UUID.randomUUID(), "user-1", UUID.randomUUID(), "external-1", "licensee-1", DEADLINE, CREATED);
     }
 
     private static PartnerLink withStatus(PartnerLinkStatus status) {
         return PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-1",
-                "keycloak-1",
                 UUID.randomUUID(),
                 "external-1",
                 "licensee-1",

@@ -186,7 +186,6 @@ class CancelPaymentServiceTest {
         PartnerLink created = PartnerLink.restore(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
                 partnerId,
                 externalId,
                 "licensee-1",

@@ -40,7 +40,7 @@ class ResolvePartnerLinkRequestServiceTest {
             PartnerStatus.ACTIVE,
             Instant.parse("2026-01-01T00:00:00Z"),
             null);
-    private static final UserLookupResult.Found ALICE = new UserLookupResult.Found("user-alice", "keycloak-alice");
+    private static final UserLookupResult.Found ALICE = new UserLookupResult.Found("user-alice");
 
     private final InMemoryPartnerRepository partners = new InMemoryPartnerRepository();
     private final InMemoryPartnerLinkRequestRepository requests = new InMemoryPartnerLinkRequestRepository();
@@ -88,7 +88,6 @@ class ResolvePartnerLinkRequestServiceTest {
         PartnerLink link = links.get(resolved.linkId());
         assertThat(link.status()).isEqualTo(PartnerLinkStatus.PENDING);
         assertThat(link.userId()).isEqualTo("user-alice");
-        assertThat(link.userKeycloakId()).isEqualTo("keycloak-alice");
         assertThat(link.partnerId()).isEqualTo(PARTNER.id());
         assertThat(link.partnerExternalId()).isEqualTo("external-1");
         assertThat(link.licenseeId()).isEqualTo("licensee-1");
@@ -120,7 +119,6 @@ class ResolvePartnerLinkRequestServiceTest {
         PartnerLink existing = PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-alice",
-                "keycloak-alice",
                 PARTNER.id(),
                 "external-0",
                 "licensee-0",
@@ -148,7 +146,6 @@ class ResolvePartnerLinkRequestServiceTest {
         PartnerLink overdue = PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-alice",
-                "keycloak-alice",
                 PARTNER.id(),
                 "external-0",
                 "licensee-0",

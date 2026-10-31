@@ -103,7 +103,6 @@ public class ResolvePartnerLinkRequestService implements ResolvePartnerLinkReque
         PartnerLink link = PartnerLink.pending(
                 UUID.randomUUID(),
                 user.userId(),
-                user.keycloakId(),
                 partner.id(),
                 request.partnerExternalId(),
                 request.licenseeId(),

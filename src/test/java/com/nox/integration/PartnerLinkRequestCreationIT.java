@@ -72,7 +72,7 @@ class PartnerLinkRequestCreationIT extends KeycloakContainerSupport {
         String approvals = queues.bind(PartnerLinkMessages.EVENTS_EXCHANGE, PartnerLinkMessages.APPROVAL_REQUESTED);
         String email = OwlWireMockSupport.uniqueEmail();
         String userId = UUID.randomUUID().toString();
-        owl.userFound(email, userId, UUID.randomUUID().toString());
+        owl.userFound(email, userId);
 
         EntityExchangeResult<String> accepted =
                 api.submit(partner, UUID.randomUUID().toString(), "external-1", email);
@@ -139,7 +139,7 @@ class PartnerLinkRequestCreationIT extends KeycloakContainerSupport {
     void aSecondRequestForAnActiveLinkPointsAtItWithoutAnotherLinkOrMessage() {
         String approvals = queues.bind(PartnerLinkMessages.EVENTS_EXCHANGE, PartnerLinkMessages.APPROVAL_REQUESTED);
         String email = OwlWireMockSupport.uniqueEmail();
-        owl.userFound(email, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        owl.userFound(email, UUID.randomUUID().toString());
         EntityExchangeResult<String> first =
                 api.submit(partner, UUID.randomUUID().toString(), "external-5", email);
         PartnerLinkRequest original = awaitLookup(PartnerLinkApi.requestIdOf(first));
@@ -181,7 +181,7 @@ class PartnerLinkRequestCreationIT extends KeycloakContainerSupport {
     void knownAndUnknownEmailsGetIdenticalResponses() {
         String known = OwlWireMockSupport.uniqueEmail();
         String unknown = OwlWireMockSupport.uniqueEmail();
-        owl.userFound(known, UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        owl.userFound(known, UUID.randomUUID().toString());
         owl.noUser(unknown);
 
         EntityExchangeResult<String> forKnown =

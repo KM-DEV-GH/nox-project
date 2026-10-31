@@ -1,0 +1,19 @@
+# User links are read and decided by the internal user id (004 research.md D4); the Keycloak
+# subject stored beside it was never read again, so the column and its index go.
+databaseChangeLog:
+  - changeSet:
+      id: 013-drop-partner-link-user-keycloak-id
+      author: nox
+      changes:
+        - dropIndex: { tableName: partner_link, indexName: ix_partner_link_user_keycloak }
+        - dropColumn: { tableName: partner_link, columnName: user_keycloak_id }
+      rollback:
+        - addColumn:
+            tableName: partner_link
+            columns:
+              - column: { name: user_keycloak_id, type: varchar(255) }
+        - createIndex:
+            tableName: partner_link
+            indexName: ix_partner_link_user_keycloak
+            columns:
+              - column: { name: user_keycloak_id }

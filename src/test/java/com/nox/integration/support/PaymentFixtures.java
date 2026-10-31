@@ -62,13 +62,12 @@ public class PaymentFixtures {
         String userId = UUID.randomUUID().toString();
         Timestamp at = Timestamp.from(createdAt);
         jdbc.sql("""
-                insert into partner_link (id, user_id, user_keycloak_id, partner_id, partner_external_id, licensee_id,
+                insert into partner_link (id, user_id, partner_id, partner_external_id, licensee_id,
                     status, expires_at, version, created_at, updated_at)
-                values (:id, :userId, :keycloakId, :partnerId, :externalId, 'licensee-1', :status, :at, 0, :at, :at)
+                values (:id, :userId, :partnerId, :externalId, 'licensee-1', :status, :at, 0, :at, :at)
                 """)
                 .param("id", id)
                 .param("userId", userId)
-                .param("keycloakId", UUID.randomUUID().toString())
                 .param("partnerId", partner.id())
                 .param("externalId", externalId)
                 .param("status", status)

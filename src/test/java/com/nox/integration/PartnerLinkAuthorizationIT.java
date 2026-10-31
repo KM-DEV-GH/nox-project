@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import com.nox.support.CapturedLogs;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +35,7 @@ class PartnerLinkAuthorizationIT extends PartnerLinkIntegrationSupport {
 
     @BeforeEach
     void createLink() {
-        alicesLink = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        alicesLink = scenarios.pendingLink(partner);
         partnerFacing = List.of(
                 new Endpoint(HttpMethod.POST, PartnerLinkApi.REQUESTS),
                 new Endpoint(HttpMethod.GET, PartnerLinkApi.REQUESTS + "/" + alicesLink.requestId()),

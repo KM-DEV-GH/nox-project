@@ -24,23 +24,23 @@ public class LinkScenarios {
         this.requests = requests;
     }
 
-    /** A {@code PENDING} link between {@code partner} and a new Owl user whose Keycloak id is {@code keycloakId}. */
-    public Link pendingLink(Partner partner, String keycloakId) {
-        return pendingLink(partner, keycloakId, "external-" + UUID.randomUUID());
+    /** A {@code PENDING} link between {@code partner} and a new Owl user. */
+    public Link pendingLink(Partner partner) {
+        return pendingLink(partner, "external-" + UUID.randomUUID());
     }
 
-    /** As {@link #pendingLink(Partner, String)}, with the partner's own reference for the user. */
-    public Link pendingLink(Partner partner, String keycloakId, String externalId) {
-        return pendingLink(partner, keycloakId, externalId, UUID.randomUUID().toString());
+    /** As {@link #pendingLink(Partner)}, with the partner's own reference for the user. */
+    public Link pendingLink(Partner partner, String externalId) {
+        return pendingLink(partner, externalId, UUID.randomUUID().toString());
     }
 
     /**
-     * As {@link #pendingLink(Partner, String, String)}, for the Owl user {@code userId}, so that one
+     * As {@link #pendingLink(Partner, String)}, for the Owl user {@code userId}, so that one
      * user can hold links with several partners.
      */
-    public Link pendingLink(Partner partner, String keycloakId, String externalId, String userId) {
+    public Link pendingLink(Partner partner, String externalId, String userId) {
         String email = OwlWireMockSupport.uniqueEmail();
-        owl.userFound(email, userId, keycloakId);
+        owl.userFound(email, userId);
         return submitAndResolve(partner, email, userId, externalId);
     }
 

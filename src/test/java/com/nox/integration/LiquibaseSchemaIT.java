@@ -100,13 +100,12 @@ class LiquibaseSchemaIT extends KeycloakContainerSupport {
 
     private void insertLink(String userId, String status) {
         jdbc.sql("""
-                insert into partner_link (id, user_id, user_keycloak_id, partner_id, partner_external_id, licensee_id,
+                insert into partner_link (id, user_id, partner_id, partner_external_id, licensee_id,
                     status, expires_at, version, created_at, updated_at)
-                values (:id, :userId, :keycloakId, :partnerId, 'external-1', 'licensee-1', :status, :now, 0, :now, :now)
+                values (:id, :userId, :partnerId, 'external-1', 'licensee-1', :status, :now, 0, :now, :now)
                 """)
                 .param("id", UUID.randomUUID())
                 .param("userId", userId)
-                .param("keycloakId", "keycloak-" + userId)
                 .param("partnerId", partner.id())
                 .param("status", status)
                 .param("now", NOW)

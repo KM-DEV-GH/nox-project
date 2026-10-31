@@ -78,13 +78,11 @@ class OwlUserLookupAdapterTest {
     @Test
     void findsTheOneApprovedUserWithBothCredentialsAndAnEncodedEmail() {
         String email = OwlWireMockSupport.uniqueEmail();
-        owl.userFound(email, "5cc42488-7c7b-4d49-b2d3-d35e9f67335c", "cfc96be6-0e51-40e3-a6bb-d974af54c43b");
+        owl.userFound(email, "5cc42488-7c7b-4d49-b2d3-d35e9f67335c");
 
         UserLookupResult result = adapter.lookUpByEmail(email);
 
-        assertThat(result)
-                .isEqualTo(new UserLookupResult.Found(
-                        "5cc42488-7c7b-4d49-b2d3-d35e9f67335c", "cfc96be6-0e51-40e3-a6bb-d974af54c43b"));
+        assertThat(result).isEqualTo(new UserLookupResult.Found("5cc42488-7c7b-4d49-b2d3-d35e9f67335c"));
         LoggedRequest request = server.findAll(owl.lookupRequest(email)).getFirst();
         assertThat(request.getUrl())
                 .contains("email=" + email.replace("@", "%40").replace("+", "%2B"))
@@ -178,7 +176,7 @@ class OwlUserLookupAdapterTest {
         owl.status(failing, 503);
         adapter.lookUpByEmail(failing);
         String next = OwlWireMockSupport.uniqueEmail();
-        owl.userFound(next, "user-1", "keycloak-1");
+        owl.userFound(next, "user-1");
 
         assertThat(adapter.lookUpByEmail(next)).isEqualTo(new UserLookupResult.Failed());
         assertThat(owl.lookupsFor(next)).isZero();
@@ -190,7 +188,7 @@ class OwlUserLookupAdapterTest {
         server.stubFor(
                 post(urlPathEqualTo("/oauth/token")).willReturn(aResponse().withStatus(503)));
         String email = OwlWireMockSupport.uniqueEmail();
-        owl.userFound(email, "user-1", "keycloak-1");
+        owl.userFound(email, "user-1");
 
         assertThat(adapter.lookUpByEmail(email)).isEqualTo(new UserLookupResult.Failed());
         assertThat(server.findAll(postRequestedFor(urlPathEqualTo("/oauth/token"))))

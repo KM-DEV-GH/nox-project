@@ -13,3 +13,4 @@ databaseChangeLog:
   - include: { file: changes/010-partner-payment-limit.yaml, relativeToChangelogFile: true }
   - include: { file: changes/011-payment.yaml, relativeToChangelogFile: true }
   - include: { file: changes/012-payment-external-id-unique.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/013-drop-partner-link-user-keycloak-id.yaml, relativeToChangelogFile: true }

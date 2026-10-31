@@ -12,7 +12,6 @@ import com.nox.integration.support.ContractAssertions;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,7 @@ class PartnerLinkRejectionIT extends PartnerLinkIntegrationSupport {
         String userMessages = queues.bind(EVENTS_EXCHANGE, REJECTED);
         String partnerMessages = queues.bind(WEBHOOKS_EXCHANGE, REJECTED);
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
 
         EntityExchangeResult<String> rejected = api.postAsInternalBff(link.userId(), link.path() + "/reject");
 

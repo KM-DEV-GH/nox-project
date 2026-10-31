@@ -12,7 +12,6 @@ public final class PartnerLink {
 
     private final UUID id;
     private final String userId;
-    private final String userKeycloakId;
     private final UUID partnerId;
     private final String partnerExternalId;
     private final String licenseeId;
@@ -25,7 +24,6 @@ public final class PartnerLink {
     private PartnerLink(
             UUID id,
             String userId,
-            String userKeycloakId,
             UUID partnerId,
             String partnerExternalId,
             String licenseeId,
@@ -36,7 +34,6 @@ public final class PartnerLink {
             Instant updatedAt) {
         this.id = id;
         this.userId = userId;
-        this.userKeycloakId = userKeycloakId;
         this.partnerId = partnerId;
         this.partnerExternalId = partnerExternalId;
         this.licenseeId = licenseeId;
@@ -51,7 +48,6 @@ public final class PartnerLink {
     public static PartnerLink pending(
             UUID id,
             String userId,
-            String userKeycloakId,
             UUID partnerId,
             String partnerExternalId,
             String licenseeId,
@@ -60,7 +56,6 @@ public final class PartnerLink {
         return new PartnerLink(
                 id,
                 userId,
-                userKeycloakId,
                 partnerId,
                 partnerExternalId,
                 licenseeId,
@@ -75,7 +70,6 @@ public final class PartnerLink {
     public static PartnerLink restore(
             UUID id,
             String userId,
-            String userKeycloakId,
             UUID partnerId,
             String partnerExternalId,
             String licenseeId,
@@ -85,17 +79,7 @@ public final class PartnerLink {
             Instant createdAt,
             Instant updatedAt) {
         return new PartnerLink(
-                id,
-                userId,
-                userKeycloakId,
-                partnerId,
-                partnerExternalId,
-                licenseeId,
-                status,
-                expiresAt,
-                version,
-                createdAt,
-                updatedAt);
+                id, userId, partnerId, partnerExternalId, licenseeId, status, expiresAt, version, createdAt, updatedAt);
     }
 
     /** The user approves: {@code CONNECTED} before the deadline, otherwise {@code EXPIRED}. */
@@ -168,11 +152,6 @@ public final class PartnerLink {
     /** Owl {@code user_id}: the canonical user identity, used for uniqueness. */
     public String userId() {
         return userId;
-    }
-
-    /** Owl {@code keycloak_id}: the subject of the user's own token, used for ownership checks. */
-    public String userKeycloakId() {
-        return userKeycloakId;
     }
 
     public UUID partnerId() {

@@ -23,9 +23,6 @@ public class PartnerLinkEntity {
     @Column(name = "user_id", nullable = false)
     private String userId;
 
-    @Column(name = "user_keycloak_id", nullable = false)
-    private String userKeycloakId;
-
     @Column(name = "partner_id", nullable = false)
     private UUID partnerId;
 
@@ -57,7 +54,6 @@ public class PartnerLinkEntity {
         PartnerLinkEntity entity = new PartnerLinkEntity();
         entity.id = link.id();
         entity.userId = link.userId();
-        entity.userKeycloakId = link.userKeycloakId();
         entity.partnerId = link.partnerId();
         entity.partnerExternalId = link.partnerExternalId();
         entity.licenseeId = link.licenseeId();
@@ -71,16 +67,6 @@ public class PartnerLinkEntity {
 
     PartnerLink toDomain() {
         return PartnerLink.restore(
-                id,
-                userId,
-                userKeycloakId,
-                partnerId,
-                partnerExternalId,
-                licenseeId,
-                status,
-                expiresAt,
-                version,
-                createdAt,
-                updatedAt);
+                id, userId, partnerId, partnerExternalId, licenseeId, status, expiresAt, version, createdAt, updatedAt);
     }
 }

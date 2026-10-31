@@ -173,21 +173,13 @@ class PartnerLinkPersistenceIT extends KeycloakContainerSupport {
 
     private PartnerLink newLink(String userId, String externalId, Instant createdAt) {
         return PartnerLink.pending(
-                UUID.randomUUID(),
-                userId,
-                "keycloak-" + userId,
-                partner.id(),
-                externalId,
-                "licensee-1",
-                DEADLINE,
-                createdAt);
+                UUID.randomUUID(), userId, partner.id(), externalId, "licensee-1", DEADLINE, createdAt);
     }
 
     private PartnerLink established(String userId, String externalId, Instant createdAt) {
         return PartnerLink.restore(
                 UUID.randomUUID(),
                 userId,
-                "keycloak-" + userId,
                 partner.id(),
                 externalId,
                 "licensee-1",

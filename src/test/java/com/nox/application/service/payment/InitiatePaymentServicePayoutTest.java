@@ -53,7 +53,6 @@ class InitiatePaymentServicePayoutTest {
         link = PartnerLink.restore(
                 UUID.randomUUID(),
                 "owl-user-1",
-                "keycloak-1",
                 PARTNER_ID,
                 "external-1",
                 "licensee-1",

@@ -164,7 +164,6 @@ class PartnerLinkEventPublicationIT extends KeycloakContainerSupport {
         PartnerLink link = PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-" + UUID.randomUUID(),
-                "keycloak-1",
                 partner.id(),
                 "external-" + UUID.randomUUID(),
                 "licensee-1",

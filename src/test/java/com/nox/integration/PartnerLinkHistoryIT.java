@@ -7,7 +7,6 @@ import com.nox.integration.support.ContractAssertions;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -22,7 +21,7 @@ class PartnerLinkHistoryIT extends PartnerLinkIntegrationSupport {
     @Test
     void createApproveRevokeGivesThreeOrderedEntries() {
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
         api.postAsInternalBff(link.userId(), link.path() + "/approve");
         api.postAsInternalBff(link.userId(), link.path() + "/revoke");
 
@@ -46,7 +45,7 @@ class PartnerLinkHistoryIT extends PartnerLinkIntegrationSupport {
     @Test
     void aLateApprovalAddsANoxEntryTimedAtTheRefusal() {
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
         clock.advance(Duration.ofMinutes(2).plusSeconds(1));
         Instant refusedAround = clock.instant();
         api.postAsInternalBff(link.userId(), link.path() + "/approve");
@@ -64,7 +63,7 @@ class PartnerLinkHistoryIT extends PartnerLinkIntegrationSupport {
 
     @Test
     void anotherUsersHistoryIsNotFound() {
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(TOKENS.user("alice")));
+        Link link = scenarios.pendingLink(partner);
 
         assertProblem(
                 api.getAsInternalBff(UUID.randomUUID().toString(), link.path() + "/history"),

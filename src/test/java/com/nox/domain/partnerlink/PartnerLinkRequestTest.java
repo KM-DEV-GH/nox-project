@@ -105,7 +105,6 @@ class PartnerLinkRequestTest {
         return PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-1",
-                "keycloak-1",
                 UUID.randomUUID(),
                 "external-1",
                 "licensee-1",

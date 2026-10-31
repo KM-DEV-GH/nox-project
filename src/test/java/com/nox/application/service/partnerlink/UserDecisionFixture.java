@@ -23,7 +23,6 @@ class UserDecisionFixture {
     static final Instant CREATED = Instant.parse("2026-10-26T09:00:00Z");
     static final Instant DEADLINE = CREATED.plus(Duration.ofHours(72));
     static final String USER_ID = "user-alice";
-    static final String KEYCLOAK_ID = "keycloak-alice";
 
     final Partner partner = new Partner(
             UUID.randomUUID(),
@@ -59,7 +58,6 @@ class UserDecisionFixture {
         PartnerLink link = PartnerLink.restore(
                 UUID.randomUUID(),
                 USER_ID,
-                KEYCLOAK_ID,
                 partner.id(),
                 "external-1",
                 "licensee-1",

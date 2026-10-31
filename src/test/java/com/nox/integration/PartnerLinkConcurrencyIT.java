@@ -11,7 +11,6 @@ import com.nox.domain.partnerlink.TransitionReason;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -38,7 +37,7 @@ class PartnerLinkConcurrencyIT extends PartnerLinkIntegrationSupport {
     @RepeatedTest(3)
     void aLateApprovalRacingASupersedingRequestExpiresTheLinkOnce() {
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
         clock.advance(PAST_DEADLINE);
 
         List<Object> results = race(
@@ -65,7 +64,7 @@ class PartnerLinkConcurrencyIT extends PartnerLinkIntegrationSupport {
     @RepeatedTest(3)
     void twoConcurrentApprovalsConnectOnce() {
         String alice = TOKENS.user("alice");
-        Link link = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link link = scenarios.pendingLink(partner);
 
         List<Object> results = race(
                 () -> api.postAsInternalBff(link.userId(), link.path() + "/approve"),

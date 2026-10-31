@@ -8,7 +8,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.OwlWireMockSupport;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +54,7 @@ class PartnerLinkLatencyPerfIT extends PartnerLinkIntegrationSupport {
         String alice = TOKENS.user("alice");
         List<Link> pending = new ArrayList<>(APPROVALS);
         for (int i = 0; i < APPROVALS; i++) {
-            pending.add(scenarios.pendingLink(partner, TestTokens.subjectOf(alice)));
+            pending.add(scenarios.pendingLink(partner));
         }
 
         List<Duration> samples = new ArrayList<>(APPROVALS);

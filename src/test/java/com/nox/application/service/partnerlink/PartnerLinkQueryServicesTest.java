@@ -116,7 +116,6 @@ class PartnerLinkQueryServicesTest {
         PartnerLink foreign = PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-bob",
-                "keycloak-bob",
                 fixture.partner.id(),
                 "external-1",
                 "licensee-1",
@@ -156,7 +155,6 @@ class PartnerLinkQueryServicesTest {
         PartnerLink link = PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-" + UUID.randomUUID(),
-                "keycloak-" + UUID.randomUUID(),
                 fixture.partner.id(),
                 "external-9",
                 "licensee-1",

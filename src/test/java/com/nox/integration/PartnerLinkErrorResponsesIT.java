@@ -7,7 +7,6 @@ import com.nox.adapter.in.web.error.ProblemType;
 import com.nox.integration.support.LinkScenarios.Link;
 import com.nox.integration.support.PartnerLinkApi;
 import com.nox.integration.support.PartnerLinkIntegrationSupport;
-import com.nox.integration.support.TestTokens;
 import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -63,8 +62,8 @@ class PartnerLinkErrorResponsesIT extends PartnerLinkIntegrationSupport {
     @Test
     void conflictsUseTheTwoDocumentedTypes() {
         String alice = TOKENS.user("alice");
-        Link expiring = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
-        Link pending = scenarios.pendingLink(partner, TestTokens.subjectOf(alice));
+        Link expiring = scenarios.pendingLink(partner);
+        Link pending = scenarios.pendingLink(partner);
 
         EntityExchangeResult<String> notActionable =
                 api.postAsInternalBff(pending.userId(), pending.path() + "/revoke");

@@ -76,7 +76,7 @@ public class OwlUserLookupAdapter implements UserLookupPort {
         }
         if (items.size() == 1 && APPROVED.equals(items.getFirst().verificationStatus())) {
             UserItem user = items.getFirst();
-            return new UserLookupResult.Found(user.id(), user.keycloakId());
+            return new UserLookupResult.Found(user.id());
         }
         return new UserLookupResult.NotFound();
     }
@@ -94,7 +94,5 @@ public class OwlUserLookupAdapter implements UserLookupPort {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record UserItem(
-            String id,
-            @JsonProperty("keycloak_id") String keycloakId,
-            @JsonProperty("verification_status") String verificationStatus) {}
+            String id, @JsonProperty("verification_status") String verificationStatus) {}
 }

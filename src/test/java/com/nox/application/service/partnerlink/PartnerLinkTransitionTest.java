@@ -27,14 +27,7 @@ class PartnerLinkTransitionTest {
     @Test
     void savesTheLinkAppendsOneEntryAndPublishesTheGivenEvents() {
         PartnerLink link = PartnerLink.pending(
-                UUID.randomUUID(),
-                "user-1",
-                "keycloak-1",
-                UUID.randomUUID(),
-                "external-1",
-                "licensee-1",
-                NOW.plusSeconds(3600),
-                NOW);
+                UUID.randomUUID(), "user-1", UUID.randomUUID(), "external-1", "licensee-1", NOW.plusSeconds(3600), NOW);
         PartnerLinkHistoryEntry entry =
                 PartnerLinkHistoryEntry.of(link, null, ActorType.PARTNER, "partner-1", TransitionReason.LINK_CREATED);
         Object first = new Object();
@@ -56,7 +49,6 @@ class PartnerLinkTransitionTest {
         PartnerLink link = PartnerLink.restore(
                 UUID.randomUUID(),
                 "user-1",
-                "keycloak-1",
                 UUID.randomUUID(),
                 "external-1",
                 "licensee-1",

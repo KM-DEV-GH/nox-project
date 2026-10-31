@@ -7,9 +7,8 @@ public sealed interface UserLookupResult {
      * Exactly one eligible user.
      *
      * @param userId Owl {@code user_id}
-     * @param keycloakId the subject of the user's Keycloak token
      */
-    record Found(String userId, String keycloakId) implements UserLookupResult {}
+    record Found(String userId) implements UserLookupResult {}
 
     /** No eligible user, including an ambiguous or unverified match. */
     record NotFound() implements UserLookupResult {}

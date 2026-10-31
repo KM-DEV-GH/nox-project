@@ -54,8 +54,8 @@ public class OwlWireMockSupport {
     }
 
     /** Exactly one {@code APPROVED} user. */
-    public void userFound(String email, String userId, String keycloakId) {
-        owl.register(lookup(email).willReturn(okJson(page(item(userId, keycloakId, "APPROVED")))));
+    public void userFound(String email, String userId) {
+        owl.register(lookup(email).willReturn(okJson(page(item(userId, "APPROVED")))));
     }
 
     public void noUser(String email) {
@@ -64,17 +64,15 @@ public class OwlWireMockSupport {
 
     /** Exactly one user, but not {@code APPROVED}. */
     public void unverifiedUser(String email) {
-        owl.register(lookup(email)
-                .willReturn(okJson(page(
-                        item(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "PENDING")))));
+        owl.register(lookup(email).willReturn(okJson(page(item(UUID.randomUUID().toString(), "PENDING")))));
     }
 
     /** Two users with the same email. */
     public void ambiguousUser(String email) {
         owl.register(lookup(email)
                 .willReturn(okJson(page(
-                        item(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "APPROVED"),
-                        item(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "APPROVED")))));
+                        item(UUID.randomUUID().toString(), "APPROVED"),
+                        item(UUID.randomUUID().toString(), "APPROVED")))));
     }
 
     public void unsuccessful(String email) {
@@ -92,7 +90,7 @@ public class OwlWireMockSupport {
     }
 
     /** The first call times out; later calls find the user. */
-    public void timesOutThenFinds(String email, Duration delay, String userId, String keycloakId) {
+    public void timesOutThenFinds(String email, Duration delay, String userId) {
         String scenario = "recovery-" + email;
         owl.register(lookup(email)
                 .inScenario(scenario)
@@ -102,7 +100,7 @@ public class OwlWireMockSupport {
         owl.register(lookup(email)
                 .inScenario(scenario)
                 .whenScenarioStateIs("recovered")
-                .willReturn(okJson(page(item(userId, keycloakId, "APPROVED")))));
+                .willReturn(okJson(page(item(userId, "APPROVED")))));
     }
 
     /** Lookups made for {@code email}, with or without credentials. */
@@ -139,10 +137,10 @@ public class OwlWireMockSupport {
                 """.formatted(String.join(",", items), items.length);
     }
 
-    private static String item(String userId, String keycloakId, String verificationStatus) {
+    private static String item(String userId, String verificationStatus) {
         return """
                 {"id":"%s","created_at":"2026-10-09T10:01:50.191Z","updated_at":"2026-10-09T10:01:52.765Z",
-                 "keycloak_id":"%s","identifier":"7985222028","type":"INDIVIDUAL",
-                 "verification_status":"%s","origin":"TONIVA"}""".formatted(userId, keycloakId, verificationStatus);
+                 "keycloak_id":"11111111-2222-3333-4444-555555555555","identifier":"7985222028","type":"INDIVIDUAL",
+                 "verification_status":"%s","origin":"TONIVA"}""".formatted(userId, verificationStatus);
     }
 }
