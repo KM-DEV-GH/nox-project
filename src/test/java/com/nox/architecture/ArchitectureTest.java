@@ -11,6 +11,7 @@ import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaConstructorCall;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.core.importer.Location;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
@@ -19,8 +20,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Enforces the Clean Architecture layer rules of constitution Principle X (research R17). */
-@AnalyzeClasses(packages = "com.nox", importOptions = ImportOption.DoNotIncludeTests.class)
+@AnalyzeClasses(
+        packages = "com.nox",
+        importOptions = {ImportOption.DoNotIncludeTests.class, ArchitectureTest.ExcludePackageInfo.class})
 class ArchitectureTest {
+
+    /** package-info carries only Spring Modulith {@code @NamedInterface} metadata, not layer code. */
+    static final class ExcludePackageInfo implements ImportOption {
+        @Override
+        public boolean includes(Location location) {
+            return !location.contains("package-info");
+        }
+    }
 
     @ArchTest
     static final ArchRule domainDependsOnlyOnJavaAndItself = classes()

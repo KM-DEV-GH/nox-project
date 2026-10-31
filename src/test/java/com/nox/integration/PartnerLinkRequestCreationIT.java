@@ -20,8 +20,12 @@ import com.nox.integration.support.TestQueues;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -37,6 +41,8 @@ import tools.jackson.databind.json.JsonMapper;
 class PartnerLinkRequestCreationIT extends KeycloakContainerSupport {
 
     private static final Duration ASYNC = Duration.ofSeconds(15);
+    private static final Set<String> HOP_BY_HOP_HEADERS =
+            Set.of("connection", "keep-alive", "proxy-connection", "transfer-encoding", "upgrade");
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
     private final OwlWireMockSupport owl = OwlWireMockSupport.forContainer();
@@ -202,8 +208,15 @@ class PartnerLinkRequestCreationIT extends KeycloakContainerSupport {
         assertThat(two.propertyNames()).isEqualTo(one.propertyNames());
         assertThat(two.get("data").propertyNames()).isEqualTo(one.get("data").propertyNames());
         assertThat(two.get("meta").propertyNames()).isEqualTo(one.get("meta").propertyNames());
-        assertThat(second.getResponseHeaders().headerNames())
-                .isEqualTo(first.getResponseHeaders().headerNames());
+        assertThat(responseHeaderNames(second)).isEqualTo(responseHeaderNames(first));
+    }
+
+    /** Hop-by-hop headers such as {@code Connection} depend on the transport connection, not on the response. */
+    private static Set<String> responseHeaderNames(EntityExchangeResult<String> result) {
+        return result.getResponseHeaders().headerNames().stream()
+                .map(name -> name.toLowerCase(Locale.ROOT))
+                .filter(name -> !HOP_BY_HOP_HEADERS.contains(name))
+                .collect(Collectors.toCollection(TreeSet::new));
     }
 
     private PartnerLinkRequest awaitLookup(UUID requestId) {
