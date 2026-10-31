@@ -1,0 +1,26 @@
+# Local JDK binaries
+jdk/
+
+# Build output
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+!.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Local environment and secrets
+.env*

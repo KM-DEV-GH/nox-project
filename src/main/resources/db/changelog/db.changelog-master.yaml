@@ -1,0 +1,15 @@
+# Liquibase master changelog (constitution Principle IX). Changesets are immutable once merged:
+# fix forward with a new file, appended below.
+databaseChangeLog:
+  - include: { file: changes/001-partner.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/002-partner-link.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/003-partner-link-request.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/004-partner-link-history.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/005-partner-link-stuck-publication.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/006-event-publication.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/007-dev-demo-partner.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/008-partner-link-user-index.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/009-partner-payment-account.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/010-partner-payment-limit.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/011-payment.yaml, relativeToChangelogFile: true }
+  - include: { file: changes/012-payment-external-id-unique.yaml, relativeToChangelogFile: true }

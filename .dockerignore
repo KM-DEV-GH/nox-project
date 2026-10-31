@@ -1,0 +1,16 @@
+jdk/
+target/
+.git/
+specs/
+.specify/
+.claude/
+.agents/
+.idea/
+.vscode/
+*.iml
+*.log
+.env*
+Dockerfile*
+.dockerignore
+compose.yaml
+docker/

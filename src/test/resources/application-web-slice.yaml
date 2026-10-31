@@ -1,0 +1,28 @@
+# Placeholder settings for @WebMvcTest slices, which bind every @ConfigurationProperties class and
+# Spring Security's OAuth2 client registrations but never call Keycloak, Owl or payment-core.
+nox:
+  auth:
+    issuer-uri: http://issuer.test
+    jwks-uri: http://issuer.test/certs
+  partner-link:
+    owl:
+      base-url: http://owl.test
+      api-key: test-api-key
+  payment:
+    payment-core:
+      base-url: http://payment-core.test
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          owl:
+            client-id: nox-test
+          payment-core:
+            client-id: nox-payments-test
+        provider:
+          owl:
+            token-uri: http://owl.test/oauth/token
+          payment-core:
+            token-uri: http://payment-core.test/oauth/token

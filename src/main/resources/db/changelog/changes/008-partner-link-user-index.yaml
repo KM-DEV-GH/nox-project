@@ -1,0 +1,15 @@
+# User partner link reads are keyed by the internal user id (004 research.md D4). The only index on
+# user_id is partial (active links), so every status needs its own.
+databaseChangeLog:
+  - changeSet:
+      id: 008-partner-link-user-index
+      author: nox
+      changes:
+        - createIndex:
+            tableName: partner_link
+            indexName: ix_partner_link_user
+            columns:
+              - column: { name: user_id }
+              - column: { name: created_at, descending: true }
+      rollback:
+        - dropIndex: { tableName: partner_link, indexName: ix_partner_link_user }

@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // {
+    //   "label": "Nox: start dependencies",
+    //   "type": "process",
+    //   "command": "podman",
+    //   "args": ["compose", "-f", "compose.yaml", "up", "-d", "keycloak", "postgres", "rabbitmq"],
+    //   "options": { "cwd": "${workspaceFolder}" },
+    //   "problemMatcher": []
+    // },
+    {
+      "label": "Nox: compile",
+      "type": "process",
+      "command": "${workspaceFolder}/mvnw",
+      "windows": { "command": "${workspaceFolder}/mvnw.cmd" },
+      "args": ["-DskipTests", "compile"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Nox: prepare",
+      "dependsOrder": "sequence",
+      "dependsOn": [ "Nox: compile"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Nox: stop dependencies",
+      "type": "process",
+      "command": "podman",
+      "args": ["compose", "-f", "compose.yaml", "stop", "keycloak", "postgres", "rabbitmq"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}

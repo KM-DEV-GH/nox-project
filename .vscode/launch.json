@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Nox: dev",
+      "request": "launch",
+      "mainClass": "com.nox.NoxApplication",
+      "projectName": "nox",
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "SPRING_PROFILES_ACTIVE": "dev"
+      },
+      "console": "integratedTerminal",
+      "preLaunchTask": "Nox: prepare"
+    }
+  ]
+}

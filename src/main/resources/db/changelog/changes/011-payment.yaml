@@ -1,0 +1,63 @@
+# One pay-in or pay-out (data-model.md: Payment). The id is also payment-core's idempotency key;
+# the account snapshot and request fingerprint never change after initiation.
+databaseChangeLog:
+  - changeSet:
+      id: 011-payment
+      author: nox
+      changes:
+        - createTable:
+            tableName: payment
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true, primaryKeyName: pk_payment, nullable: false } }
+              - column: { name: payment_core_id, type: varchar(128) }
+              - column: { name: partner_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_payment_partner, references: partner(id) } }
+              - column: { name: user_link_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_payment_user_link, references: partner_link(id) } }
+              - column: { name: provider_user_id_snapshot, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: account_id_snapshot, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: idempotency_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: request_fingerprint, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: type, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: payment_method, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: amount, type: "numeric(19,4)", constraints: { nullable: false } }
+              - column: { name: currency_code, type: varchar(12), constraints: { nullable: false } }
+              - column: { name: external_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: transaction_reference, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: description, type: varchar(512) }
+              - column: { name: fee_amount, type: "numeric(19,4)" }
+              - column: { name: fee_currency_code, type: varchar(12) }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: payment_core_created_at, type: timestamp with time zone }
+              - column: { name: expiration_date, type: timestamp with time zone }
+              - column: { name: confirmed_date, type: timestamp with time zone }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: version, type: bigint, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: payment
+            columnNames: partner_id, idempotency_key
+            constraintName: uq_payment_idempotency
+        # Postgres allows any number of NULLs in a unique constraint: unique once payment-core assigns it.
+        - addUniqueConstraint:
+            tableName: payment
+            columnNames: payment_core_id
+            constraintName: uq_payment_payment_core_id
+        - sql:
+            sql: >-
+              alter table payment add constraint ck_payment_type
+              check (type in ('PAYIN', 'PAYOUT'))
+        - sql:
+            sql: >-
+              alter table payment add constraint ck_payment_amount
+              check (amount > 0)
+        - sql:
+            sql: >-
+              alter table payment add constraint ck_payment_status
+              check (status in ('INITIATING', 'AWAITING_OTP', 'CONFIRMING', 'CANCELLING', 'CONFIRMED', 'CANCELLED',
+              'FAILED', 'EXPIRED', 'INITIATION_UNKNOWN', 'CONFIRMATION_UNKNOWN', 'CANCELLATION_UNKNOWN'))
+        - createIndex:
+            tableName: payment
+            indexName: ix_payment_user_link
+            columns:
+              - column: { name: user_link_id }
+      rollback:
+        - dropTable: { tableName: payment }

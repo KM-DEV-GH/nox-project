@@ -1,0 +1,39 @@
+# Local development only. Tests use Testcontainers, never this file.
+# Required environment: ALICE_DEV_PASSWORD, BOB_DEV_PASSWORD, NOX_DEV_SERVICE_SECRET,
+# NOX_DEV_BFF_SECRET, NOX_DEV_INTERNAL_BFF_SECRET, KC_BOOTSTRAP_ADMIN_PASSWORD, NOX_DB_PASSWORD,
+# NOX_RABBITMQ_PASSWORD
+# (e.g. from an untracked .env file).
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm"]
+    ports:
+      - "127.0.0.1:8180:8080"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:?set KC_BOOTSTRAP_ADMIN_PASSWORD}
+      ALICE_DEV_PASSWORD: ${ALICE_DEV_PASSWORD:?set ALICE_DEV_PASSWORD}
+      BOB_DEV_PASSWORD: ${BOB_DEV_PASSWORD:?set BOB_DEV_PASSWORD}
+      NOX_DEV_SERVICE_SECRET: ${NOX_DEV_SERVICE_SECRET:?set NOX_DEV_SERVICE_SECRET}
+      NOX_DEV_BFF_SECRET: ${NOX_DEV_BFF_SECRET:?set NOX_DEV_BFF_SECRET}
+      NOX_DEV_INTERNAL_BFF_SECRET: ${NOX_DEV_INTERNAL_BFF_SECRET:?set NOX_DEV_INTERNAL_BFF_SECRET}
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import:ro
+
+  postgres:
+    image: docker.io/library/postgres:18.6-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: nox
+      POSTGRES_USER: nox
+      POSTGRES_PASSWORD: ${NOX_DB_PASSWORD:?set NOX_DB_PASSWORD}
+
+  rabbitmq:
+    image: docker.io/library/rabbitmq:4.4.0-management-alpine
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: nox
+      RABBITMQ_DEFAULT_PASS: ${NOX_RABBITMQ_PASSWORD:?set NOX_RABBITMQ_PASSWORD}

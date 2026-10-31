@@ -1,0 +1,201 @@
+### Manual checks for the Nox API.
+#
+# For the VS Code "REST Client" extension (humao.rest-client).
+# Needs Keycloak from compose.yaml and the service running with the dev profile
+# (see README.md, steps 1-3). Credentials are read from the git-ignored .env file
+# next to this file; none are stored here.
+#
+# Run the token requests first: the requests below them reuse those tokens.
+# Tokens expire after 5 minutes; re-run the token request to get a new one.
+
+@baseUrl = http://localhost:8080
+@keycloak = http://localhost:8180/realms/nox-dev
+@tokenUrl = {{keycloak}}/protocol/openid-connect/token
+
+@aliceToken = {{alice.response.body.access_token}}
+@bobToken = {{bob.response.body.access_token}}
+@serviceToken = {{service.response.body.access_token}}
+@bffToken = {{bff.response.body.access_token}}
+@internalBffToken = {{internal_bff.response.body.access_token}}
+
+
+######################################################################
+# Tokens
+######################################################################
+
+### Token for alice (role nox-tester, has an email)
+# @name alice
+POST {{tokenUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password
+&client_id=nox-dev-cli
+&username=alice
+&password={{$dotenv ALICE_DEV_PASSWORD}}
+
+### Token for bob (no roles, no email)
+# @name bob
+POST {{tokenUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password
+&client_id=nox-dev-cli
+&username=bob
+&password={{$dotenv BOB_DEV_PASSWORD}}
+
+### Token for the service client nox-dev-service (client credentials)
+# @name service
+POST {{tokenUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&client_id=nox-dev-service
+&client_secret={{$dotenv NOX_DEV_SERVICE_SECRET}}
+
+
+### Token for the service client nox-dev-service (client credentials)
+# @name bff
+POST {{tokenUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&client_id=nox-dev-bff
+&client_secret={{$dotenv NOX_BFF_SECRET}}
+
+
+### Token for the service client nox-dev-service (client credentials)
+# @name internal_bff
+POST {{tokenUrl}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&client_id=nox-dev-internal-bff
+&client_secret={{$dotenv NOX_DEV_INTERNAL_BFF_SECRET}}
+
+
+######################################################################
+# Probes: public, no token
+######################################################################
+
+### Readiness: 200 with empty body once signing keys are loaded, else 503
+GET {{baseUrl}}/readyz
+
+### Health: status UP / DEGRADED (200) or DOWN (503), with a keycloak check
+GET {{baseUrl}}/healthz
+
+
+######################################################################
+# Current caller: GET /api/v1/me
+######################################################################
+
+### alice: callerType USER, username alice, email set, roles [nox-tester]
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}}
+
+### bob: callerType USER, email null, roles []
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{bobToken}}
+
+### Service client: callerType SERVICE, clientId nox-dev-service, username and email null
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{serviceToken}}
+
+### Spoofed identity header is ignored: still alice's subjectId
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}}
+X-User-Id: someone-else
+
+### Correlation ID: shows up as trace.correlationId in the service log
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}}
+X-Correlation-Id: manual-check-001
+
+
+######################################################################
+# Authentication failures: 401, WWW-Authenticate: Bearer,
+# type urn:problem:unauthenticated, same generic detail every time.
+# The service log shows the specific reason.
+######################################################################
+
+### No token (log reason: missing_token)
+GET {{baseUrl}}/api/v1/me
+
+### Wrong scheme (log reason: missing_token)
+GET {{baseUrl}}/api/v1/me
+Authorization: Basic YWxpY2U6bm90LWEtcmVhbC1wYXNzd29yZA==
+
+### Empty bearer value (log reason: malformed_token)
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer
+
+### Not a JWT (log reason: malformed_token)
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer not-a-jwt
+
+### Tampered signature (log reason: invalid_signature)
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}}x
+
+### Two tokens in one header (log reason: malformed_token)
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}} {{bobToken}}
+
+
+######################################################################
+# Other errors (authenticated): application/problem+json
+######################################################################
+
+### Unknown path: 404 urn:problem:not_found
+GET {{baseUrl}}/api/v1/does-not-exist
+Authorization: Bearer {{aliceToken}}
+
+### Unsupported method: 405 urn:problem:method_not_allowed, with Allow: GET
+POST {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}}
+
+### Unsatisfiable Accept: 406 urn:problem:not_acceptable
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{aliceToken}}
+Accept: application/xml
+
+### Unknown path without a token: 401, not 404 (nothing is revealed before authentication)
+GET {{baseUrl}}/api/v1/does-not-exist
+
+### Protected resource metadata is not public: 401
+GET {{baseUrl}}/.well-known/oauth-protected-resource
+
+
+######################################################################
+# Link User
+######################################################################
+@serviceId=demo-partner
+@userEmail=toniva.test11@toniva.com
+@externalId=toniva.test11
+@userId = 3a2258d3-a4d6-4001-87fc-837fdf0a8a48
+@linkId=b56f2b79-6841-4fbc-98b8-769f13e693fe
+### Lint request for linking user
+POST {{baseUrl}}/api/v1/partner-link-requests
+Authorization: Bearer {{bffToken}}
+Content-Type: application/json
+X-Service-Id: {{serviceId}}
+Idempotency-Key: 001
+
+{
+  "externalId": "{{externalId}}",
+  "email": "{{userEmail}}",
+  "licenseeId": "string"
+}
+
+### Get all partner link requests
+GET {{baseUrl}}/api/v1/user-partner-links
+Authorization: Bearer {{internalBffToken}}
+X-User-ID: {{userId}}
+
+### Accept partner link request
+POST {{baseUrl}}/api/v1/partner-link-requests/{{linkId}}/approve
+Authorization: Bearer {{internalBffToken}}
+Content-Type: application/json
+X-User-ID: {{userId}}
+
+
+### PAY-IN

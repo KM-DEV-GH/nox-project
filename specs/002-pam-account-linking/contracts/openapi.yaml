@@ -1,0 +1,604 @@
+openapi: 3.1.0
+info:
+  title: Nox API — Partner Link Management
+  version: 1.0.0
+  description: |
+    Headless API. Every endpoint requires an OAuth 2.0 Bearer access token issued by the
+    configured Keycloak realm, with "nox-api" in its audience (constitution Principle II).
+    Successful responses use the standard `{ data, meta }` envelope; errors use
+    application/problem+json (Principle VI). All keys are lowerCamelCase (Principle V).
+
+    Two front-end services call this API, each with its own application-to-application token
+    (research.md decision 6, as amended by 004-bff-role-authorization). A user's own token is
+    refused (403) on both surfaces, whatever roles it carries.
+    - **Partner-facing endpoints** (`/api/v1/partner-link-requests/**`, `/api/v1/partner-links/**`) are
+      called by the partner BFF, whose token must carry the Keycloak client role `partner-access`.
+      Only on such calls is the `x-service-id` header read; it must resolve to an active, valid
+      partner in NOX's partner registry. Any other caller gets 403.
+    - **User-facing endpoints** (`/api/v1/user-partner-links/**`) are called by the internal BFF,
+      whose token must carry the Keycloak client role `internal-access`, on behalf of the user in
+      the `X-User-ID` header: the internal (Owl) user id NOX stored on the link. A missing or
+      malformed `X-User-ID` is 400; a link that does not belong to that user is reported as 404.
+
+    Enumeration safety (spec FR-001, FR-012, FR-013, SC-002): before a reportable outcome, no
+    partner-facing response reveals whether an email matched an account. Partner-facing link reads return
+    only established links (`CONNECTED`, `REVOKED`); every other case is the same 404.
+
+    Error catalogue — every endpoint may additionally return 401 unauthenticated,
+    405 method_not_allowed, 406 not_acceptable, 500 internal_error.
+servers:
+  - url: http://localhost:8080
+security:
+  - keycloakBearer: []
+paths:
+  /api/v1/partner-link-requests:
+    post:
+      operationId: createPartnerLinkRequest
+      summary: Submit a request to link a partner to a user's NOX account
+      description: |
+        Persists the request and returns 202 before any user lookup, so the response is the same
+        in content and timing whether or not the email matches an account (FR-001, FR-002).
+        Idempotent per `Idempotency-Key` (FR-004).
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePartnerLinkRequest"
+            example:
+              externalId: 76490253-9de4-4988-b757-ad0f13a5c7fd
+              email: user@example.com
+              licenseeId: nox-gaming-eu
+      responses:
+        "202":
+          description: Request accepted for processing (not proof a matching account exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRequestAcceptedResponse"
+              example:
+                data:
+                  requestId: 6f1d0c52-3b0e-4a4f-9a38-1d0c1c7a2e10
+                  status: ACCEPTED
+                meta:
+                  traceId: a0b3dd10e3be3097d588b6c3ccd7f4c0
+                  timestamp: "2026-10-26T09:21:41.942967Z"
+                  instance: /api/v1/partner-link-requests
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/partner-link-requests/{requestId}:
+    get:
+      operationId: getPartnerLinkRequestStatus
+      summary: Fallback status check for a submitted link request
+      description: |
+        Returns `PROCESSING` until a reportable outcome exists (FR-012). A request whose email
+        matched no account reports `PROCESSING` until its deadline and `EXPIRED` afterwards —
+        the same sequence as a real user who never decides.
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Current reportable status of the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkRequestStatusResponse"
+              example:
+                data:
+                  requestId: 6f1d0c52-3b0e-4a4f-9a38-1d0c1c7a2e10
+                  status: PROCESSING
+                meta:
+                  traceId: a0b3dd10e3be3097d588b6c3ccd7f4c0
+                  timestamp: "2026-10-26T09:21:41.942967Z"
+                  instance: /api/v1/partner-link-requests/6f1d0c52-3b0e-4a4f-9a38-1d0c1c7a2e10
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/partner-links/{linkId}:
+    get:
+      operationId: getPartnerLinkById
+      summary: Retrieve an established link by its NOX-issued identifier
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+        - name: linkId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: The established link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerLinkResponse"
+              example:
+                data:
+                  linkId: 6c2e29b0-0760-4f15-985b-16876010da10
+                  externalId: 76490253-9de4-4988-b757-ad0f13a5c7fd
+                  status: CONNECTED
+                meta:
+                  traceId: a0b3dd10e3be3097d588b6c3ccd7f4c0
+                  timestamp: "2026-10-26T09:21:41.942967Z"
+                  instance: /api/v1/partner-links/6c2e29b0-0760-4f15-985b-16876010da10
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/partner-links/by-external/{externalId}:
+    get:
+      operationId: getPartnerLinkByExternalId
+      summary: Retrieve the most recently created established link for the partner's external identifier
+      parameters:
+        - $ref: "#/components/parameters/ServiceId"
+        - name: externalId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The established link (most recently created, FR-013)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerLinkResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/user-partner-links:
+    get:
+      operationId: listMyPartnerLinks
+      summary: List every link belonging to the user in X-User-ID
+      description: Every link regardless of status (FR-014, SC-003).
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: The user's links with current (effective) statuses
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/user-partner-links/{linkId}:
+    get:
+      operationId: getMyPartnerLink
+      summary: Retrieve one of the user's links
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/LinkId"
+      responses:
+        "200":
+          description: Link detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/user-partner-links/{linkId}/history:
+    get:
+      operationId: getMyPartnerLinkHistory
+      summary: Retrieve the ordered history of recorded transitions for one of the user's links
+      description: Every written transition with timestamp and actor (FR-009, FR-010, SC-005).
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/LinkId"
+      responses:
+        "200":
+          description: Chronological list of history entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartnerLinkHistoryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/user-partner-links/{linkId}/approve:
+    post:
+      operationId: approvePartnerLink
+      summary: Approve a pending link as the user
+      description: |
+        Moves a `PENDING` link to `CONNECTED` before its deadline and publishes the user
+        notification and the partner webhook event (FR-007, FR-011). At or after the deadline the
+        link is recorded as `EXPIRED` and 409 `link_expired` is returned (FR-017).
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/LinkId"
+      responses:
+        "200":
+          description: Link approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "409":
+          $ref: "#/components/responses/LinkConflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/user-partner-links/{linkId}/reject:
+    post:
+      operationId: rejectPartnerLink
+      summary: Reject a pending link as the user
+      description: Same deadline and state rules as approve (FR-007, FR-017).
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/LinkId"
+      responses:
+        "200":
+          description: Link rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "409":
+          $ref: "#/components/responses/LinkConflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/v1/user-partner-links/{linkId}/revoke:
+    post:
+      operationId: revokePartnerLink
+      summary: Revoke a CONNECTED link as the user
+      description: |
+        Terminal; there is no "inactivate" action. Refused with 409 `link_not_actionable` for any
+        link that is not `CONNECTED` (FR-016). Publishes no messages (FR-011).
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/LinkId"
+      responses:
+        "200":
+          description: Link revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLinkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowed"
+        "406":
+          $ref: "#/components/responses/NotAcceptable"
+        "409":
+          $ref: "#/components/responses/LinkConflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+components:
+  securitySchemes:
+    keycloakBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ServiceId:
+      name: x-service-id
+      in: header
+      required: true
+      description: Client id of the partner the BFF is calling for. Read only from callers holding the `partner-access` role.
+      schema: { type: string }
+    UserId:
+      name: X-User-ID
+      in: header
+      required: true
+      description: Internal (Owl) user id of the user the internal BFF is calling for. Read only from callers holding the `internal-access` role.
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, maxLength: 128 }
+    LinkId:
+      name: linkId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: Request failed validation
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: urn:problem:bad_request
+            title: bad_request
+            detail: email must be a valid email address.
+            traceId: 4574352eb5bf4d5d80c376a1d172b868
+            timestamp: "2026-10-26T09:21:41.942967Z"
+            instance: /api/v1/partner-link-requests
+    Unauthenticated:
+      description: Missing or invalid token
+      headers:
+        WWW-Authenticate:
+          schema: { type: string, const: Bearer }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: urn:problem:unauthenticated
+            title: unauthenticated
+            detail: A valid access token is required.
+            traceId: 4574352eb5bf4d5d80c376a1d172b868
+            timestamp: "2026-10-26T09:21:41.942967Z"
+            instance: /api/v1/partner-link-requests
+    Forbidden:
+      description: |
+        Valid token, but the caller may not use this endpoint: a partner-facing call without the
+        `partner-access` role or with an `x-service-id` that is not an active, valid partner; a
+        user-facing call without the `internal-access` role; or any call with a user's own token.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: urn:problem:forbidden
+            title: forbidden
+            detail: You do not have permission to perform this action.
+            traceId: 4574352eb5bf4d5d80c376a1d172b868
+            timestamp: "2026-10-26T09:21:41.942967Z"
+            instance: /api/v1/partner-link-requests
+    NotFound:
+      description: |
+        No such resource for this caller. Also returned, identically, for a partner-facing read of a
+        link that is not established, and for a user-facing read of another user's link.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          example:
+            type: urn:problem:not_found
+            title: not_found
+            detail: The requested resource was not found.
+            traceId: 4574352eb5bf4d5d80c376a1d172b868
+            timestamp: "2026-10-26T09:21:41.942967Z"
+            instance: /api/v1/partner-links/6c2e29b0-0760-4f15-985b-16876010da10
+    LinkConflict:
+      description: The link cannot take this action (`link_expired` or `link_not_actionable`)
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+          examples:
+            expired:
+              value:
+                type: urn:problem:link_expired
+                title: link_expired
+                detail: This link request has expired. Ask the provider to send a new one.
+                traceId: 4574352eb5bf4d5d80c376a1d172b868
+                timestamp: "2026-10-26T09:21:41.942967Z"
+                instance: /api/v1/user-partner-links/6c2e29b0-0760-4f15-985b-16876010da10/approve
+            notActionable:
+              value:
+                type: urn:problem:link_not_actionable
+                title: link_not_actionable
+                detail: This link is not in a state that allows this action.
+                traceId: 4574352eb5bf4d5d80c376a1d172b868
+                timestamp: "2026-10-26T09:21:41.942967Z"
+                instance: /api/v1/user-partner-links/6c2e29b0-0760-4f15-985b-16876010da10/revoke
+    MethodNotAllowed:
+      description: The HTTP method is not supported for this resource
+      headers:
+        Allow:
+          schema: { type: string, example: GET }
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    NotAcceptable:
+      description: None of the media types in the Accept header can be produced
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Meta:
+      type: object
+      required: [traceId, timestamp, instance]
+      properties:
+        traceId: { type: string, pattern: "^[0-9a-f]{32}$" }
+        timestamp: { type: string, format: date-time }
+        instance: { type: string, description: Request path }
+    CreatePartnerLinkRequest:
+      type: object
+      required: [externalId, email, licenseeId]
+      additionalProperties: false
+      properties:
+        externalId: { type: string, minLength: 1, maxLength: 128, description: The partner's own reference for this user }
+        email: { type: string, format: email, maxLength: 254 }
+        licenseeId: { type: string, minLength: 1, maxLength: 64 }
+    LinkRequestAcceptedResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [requestId, status]
+          properties:
+            requestId: { type: string, format: uuid }
+            status: { type: string, enum: [ACCEPTED] }
+        meta: { $ref: "#/components/schemas/Meta" }
+    LinkRequestStatusResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [requestId, status]
+          properties:
+            requestId: { type: string, format: uuid }
+            status:
+              type: string
+              enum: [PROCESSING, CONNECTED, REJECTED, EXPIRED, REVOKED]
+        meta: { $ref: "#/components/schemas/Meta" }
+    PartnerLinkData:
+      description: Partner-facing view of an established link
+      type: object
+      required: [linkId, externalId, status]
+      properties:
+        linkId: { type: string, format: uuid }
+        externalId: { type: string }
+        status: { type: string, enum: [CONNECTED, REVOKED] }
+    PartnerLinkResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/PartnerLinkData" }
+        meta: { $ref: "#/components/schemas/Meta" }
+    UserLinkData:
+      description: User-facing view of a link; `status` is the effective status (FR-017)
+      type: object
+      required: [linkId, partnerName, status, expiresAt, createdAt]
+      properties:
+        linkId: { type: string, format: uuid }
+        partnerName: { type: string }
+        partnerWebsite: { type: [string, "null"] }
+        status: { type: string, enum: [PENDING, CONNECTED, REJECTED, EXPIRED, REVOKED] }
+        expiresAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    UserLinkResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/UserLinkData" }
+        meta: { $ref: "#/components/schemas/Meta" }
+    UserLinkListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/UserLinkData" }
+        meta: { $ref: "#/components/schemas/Meta" }
+    PartnerLinkHistoryEntryData:
+      type: object
+      required: [fromStatus, toStatus, actorType, occurredAt, reason]
+      properties:
+        fromStatus: { type: [string, "null"], enum: [PENDING, CONNECTED, null] }
+        toStatus: { type: string, enum: [PENDING, CONNECTED, REJECTED, EXPIRED, REVOKED] }
+        actorType: { type: string, enum: [USER, PARTNER, NOX] }
+        occurredAt: { type: string, format: date-time }
+        reason:
+          type: string
+          enum: [link_created, user_approved, user_rejected, user_revoked, expired_on_late_action, expired_on_new_request]
+    PartnerLinkHistoryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/PartnerLinkHistoryEntryData" }
+        meta: { $ref: "#/components/schemas/Meta" }
+    Problem:
+      type: object
+      required: [type, title, detail, traceId, timestamp, instance]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        detail: { type: string }
+        traceId: { type: string }
+        timestamp: { type: string, format: date-time }
+        instance: { type: string }

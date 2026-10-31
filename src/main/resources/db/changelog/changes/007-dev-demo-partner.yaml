@@ -1,0 +1,22 @@
+# Development data only (context "dev"): the partner used by the quickstart walkthrough.
+databaseChangeLog:
+  - changeSet:
+      id: 007-dev-demo-partner
+      author: nox
+      context: dev
+      changes:
+        - insert:
+            tableName: partner
+            columns:
+              - column: { name: id, value: 9d3c1a52-7f0e-4c8b-a1d2-5e6f7a8b9c01 }
+              - column: { name: client_id, value: demo-partner }
+              - column: { name: name, value: Demo partner }
+              - column: { name: website, value: https://demo-partner.example.test }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: valid_from, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: created_at, valueDate: "2026-01-01T00:00:00" }
+              - column: { name: updated_at, valueDate: "2026-01-01T00:00:00" }
+      rollback:
+        - delete:
+            tableName: partner
+            where: client_id = 'demo-partner'

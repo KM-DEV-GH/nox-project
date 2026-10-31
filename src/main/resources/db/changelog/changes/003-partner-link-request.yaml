@@ -1,0 +1,35 @@
+# One submission by a partner, persisted before the user lookup (data-model.md: PartnerLinkRequest).
+databaseChangeLog:
+  - changeSet:
+      id: 003-partner-link-request
+      author: nox
+      changes:
+        - createTable:
+            tableName: partner_link_request
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: partner_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_partner_link_request_partner, references: partner(id) } }
+              - column: { name: idempotency_key, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: partner_external_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: licensee_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: email, type: varchar(254) }
+              - column: { name: lookup_status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: link_id, type: uuid, constraints: { foreignKeyName: fk_partner_link_request_link, references: partner_link(id) } }
+              - column: { name: correlation_id, type: uuid, constraints: { nullable: false } }
+              - column: { name: submitted_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: expires_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: partner_link_request
+            columnNames: partner_id, idempotency_key
+            constraintName: uq_partner_link_request_idempotency
+        - sql:
+            sql: >-
+              alter table partner_link_request add constraint ck_partner_link_request_lookup_status
+              check (lookup_status in ('PENDING', 'RESOLVED', 'NOT_FOUND', 'FAILED'))
+        - createIndex:
+            tableName: partner_link_request
+            indexName: ix_partner_link_request_link
+            columns:
+              - column: { name: link_id }
+      rollback:
+        - dropTable: { tableName: partner_link_request }

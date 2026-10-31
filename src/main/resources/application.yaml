@@ -1,0 +1,129 @@
+spring:
+  application:
+    name: nox
+  mvc:
+    problemdetails:
+      enabled: false
+  jackson:
+    deserialization:
+      # Request bodies are closed (contract additionalProperties: false); unknown keys are a 400.
+      fail-on-unknown-properties: true
+  datasource:
+    url: ${NOX_DB_URL:}
+    username: ${NOX_DB_USERNAME:nox}
+    password: ${NOX_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    # Changesets without a context always run; "dev" seed data runs only where a profile adds it.
+    contexts: schema
+  rabbitmq:
+    host: ${NOX_RABBITMQ_HOST:}
+    port: ${NOX_RABBITMQ_PORT:5672}
+    username: ${NOX_RABBITMQ_USERNAME:nox}
+    password: ${NOX_RABBITMQ_PASSWORD:}
+    connection-timeout: 5s
+    publisher-confirm-type: correlated
+  modulith:
+    events:
+      republish-outstanding-events-on-restart: true
+      # Completed publications move to event_publication_archive, so event_publication holds only
+      # in-flight work: what the sweeper scans every minute and what restart republishing reads.
+      # Retention is the archive table's partitioning, not a delete job.
+      completion-mode: archive
+  autoconfigure:
+    # Partner link messages are sent by PartnerLinkMessageTransport, which sets the required AMQP
+    # properties and waits for publisher confirms; Modulith's default RabbitMQ transport does neither.
+    exclude: org.springframework.modulith.events.amqp.RabbitEventExternalizerConfiguration
+  security:
+    oauth2:
+      client:
+        registration:
+          owl:
+            provider: owl
+            authorization-grant-type: client_credentials
+            client-id: ${NOX_OWL_CLIENT_ID:}
+            client-secret: ${NOX_OWL_CLIENT_SECRET:}
+          payment-core:
+            provider: payment-core
+            authorization-grant-type: client_credentials
+            client-id: ${NOX_PAYMENT_CORE_CLIENT_ID:}
+            client-secret: ${NOX_PAYMENT_CORE_CLIENT_SECRET:}
+        provider:
+          owl:
+            token-uri: ${NOX_OWL_TOKEN_URI:}
+          payment-core:
+            token-uri: ${NOX_PAYMENT_CORE_TOKEN_URI:}
+
+springdoc:
+  # Generated docs and Swagger UI are public when enabled, so only the dev profile enables them.
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+    # Redirects to the UI's assets, which springdoc still serves under /swagger-ui/.
+    path: /docs
+
+server:
+  error:
+    whitelabel:
+      enabled: false
+
+logging:
+  structured:
+    format:
+      console: com.nox.infrastructure.logging.NoxStructuredLogFormatter
+
+management:
+  tracing:
+    sampling:
+      # Spans are never exported (no OTLP exporter); sampling everything keeps parent span IDs in logs.
+      probability: 1.0
+
+nox:
+  service:
+    version: "@project.version@"
+    environment: default
+  auth:
+    issuer-uri: ${NOX_AUTH_ISSUER_URI:}
+    jwks-uri: ${NOX_AUTH_JWKS_URI:}
+    audience: ${NOX_AUTH_AUDIENCE:nox-api}
+    jwks-connect-timeout: 2s
+    jwks-read-timeout: 2s
+  partner-link:
+    approval-window: ${NOX_PARTNER_LINK_APPROVAL_WINDOW:72h}
+    stuck-publication-age: 15m
+    publication-sweep-interval: 1m
+    owl:
+      base-url: ${NOX_OWL_BASE_URL:}
+      # Secret: bound only from the runtime environment, never committed or logged.
+      api-key: ${NOX_OWL_API_KEY:}
+      connect-timeout: 2s
+      read-timeout: 3s
+      max-attempts: 4
+      backoff: 500ms
+      socks5-enabled: ${NOX_OWL_SOCKS5_ENABLED:false}
+      socks5-host: ${NOX_OWL_SOCKS5_HOST:}
+      socks5-port: ${NOX_OWL_SOCKS5_PORT:1080}
+  payment:
+    # Payment-core method per transaction type; partners cannot choose it. Blank refuses that type.
+    payin-method: ${NOX_PAYMENT_PAYIN_METHOD:}
+    payout-method: ${NOX_PAYMENT_PAYOUT_METHOD:}
+    payment-core:
+      base-url: ${NOX_PAYMENT_CORE_BASE_URL:}
+      # OAuth2 client credentials only (spring.security.oauth2.client.registration.payment-core); no API key.
+      connect-timeout: 2s
+      read-timeout: 5s
+      max-attempts: 3
+      backoff: 200ms
+      circuit-breaker:
+        failure-rate-threshold: 50
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        wait-duration-in-open-state: 30s
+      socks5-enabled: ${NOX_PAYMENT_CORE_SOCKS5_ENABLED:false}
+      socks5-host: ${NOX_PAYMENT_CORE_SOCKS5_HOST:}
+      socks5-port: ${NOX_PAYMENT_CORE_SOCKS5_PORT:1080}

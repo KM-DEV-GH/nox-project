@@ -1,0 +1,15 @@
+# A partner's externalId names one payment (005 spec FR-022). Every stored payment holds it,
+# whatever its status; a released reservation is deleted and frees it.
+databaseChangeLog:
+  - changeSet:
+      id: 012-payment-external-id-unique
+      author: nox
+      changes:
+        - addUniqueConstraint:
+            tableName: payment
+            columnNames: partner_id, external_id
+            constraintName: uq_payment_external_id
+      rollback:
+        - dropUniqueConstraint:
+            tableName: payment
+            constraintName: uq_payment_external_id

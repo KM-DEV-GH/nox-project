@@ -1,0 +1,49 @@
+# Use with: podman compose -f compose.yaml -f compose.dev.yaml up app
+services:
+  app:
+    image: eclipse-temurin:25-jdk
+    working_dir: /workspace
+    init: true
+    command: ["./mvnw", "-B", "spring-boot:run"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      # Tokens requested from the host retain their public issuer.
+      NOX_AUTH_ISSUER_URI: http://localhost:8180/realms/nox-dev
+      NOX_AUTH_JWKS_URI: http://keycloak:8080/realms/nox-dev/protocol/openid-connect/certs
+      NOX_DB_URL: jdbc:postgresql://postgres:5432/nox
+      NOX_DB_PASSWORD: ${NOX_DB_PASSWORD:?set NOX_DB_PASSWORD}
+      NOX_RABBITMQ_HOST: rabbitmq
+      NOX_RABBITMQ_PASSWORD: ${NOX_RABBITMQ_PASSWORD:?set NOX_RABBITMQ_PASSWORD}
+      # Owl is an external service: NOX_OWL_* come from the untracked .env file.
+      NOX_OWL_BASE_URL: ${NOX_OWL_BASE_URL:-}
+      NOX_OWL_TOKEN_URI: ${NOX_OWL_TOKEN_URI:-}
+      NOX_OWL_CLIENT_ID: ${NOX_OWL_CLIENT_ID:-}
+      NOX_OWL_CLIENT_SECRET: ${NOX_OWL_CLIENT_SECRET:-}
+      NOX_OWL_API_KEY: ${NOX_OWL_API_KEY:-}
+      # Payment-core is an external service too: NOX_PAYMENT_* come from the untracked .env file.
+      NOX_PAYMENT_CORE_BASE_URL: ${NOX_PAYMENT_CORE_BASE_URL:-}
+      NOX_PAYMENT_CORE_TOKEN_URI: ${NOX_PAYMENT_CORE_TOKEN_URI:-}
+      NOX_PAYMENT_CORE_CLIENT_ID: ${NOX_PAYMENT_CORE_CLIENT_ID:-}
+      NOX_PAYMENT_CORE_CLIENT_SECRET: ${NOX_PAYMENT_CORE_CLIENT_SECRET:-}
+      NOX_PAYMENT_PAYIN_METHOD: ${NOX_PAYMENT_PAYIN_METHOD:-}
+      NOX_PAYMENT_PAYOUT_METHOD: ${NOX_PAYMENT_PAYOUT_METHOD:-}
+      NOX_PAYMENT_CORE_SOCKS5_ENABLED: ${NOX_PAYMENT_CORE_SOCKS5_ENABLED:-false}
+      NOX_PAYMENT_CORE_SOCKS5_HOST: ${NOX_PAYMENT_CORE_SOCKS5_HOST:-}
+      NOX_PAYMENT_CORE_SOCKS5_PORT: ${NOX_PAYMENT_CORE_SOCKS5_PORT:-1080}
+    depends_on:
+      - keycloak
+      - postgres
+      - rabbitmq
+    volumes:
+      - .:/workspace
+      # ":z" relabels the volumes for shared use on each start. Without it, files moved in from the
+      # container's private /tmp (the Maven wrapper's download) keep that container's SELinux label,
+      # and the next container cannot read them.
+      - dev-target:/workspace/target:z
+      - dev-maven:/root/.m2:z
+
+volumes:
+  dev-target:
+  dev-maven:

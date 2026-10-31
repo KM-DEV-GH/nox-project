@@ -1,0 +1,30 @@
+# Currency enablement and inclusive amount bounds per partner, type and currency (data-model.md:
+# Partner Payment Limit; spec FR-003).
+databaseChangeLog:
+  - changeSet:
+      id: 010-partner-payment-limit
+      author: nox
+      changes:
+        - createTable:
+            tableName: partner_payment_limit
+            columns:
+              - column: { name: partner_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_partner_payment_limit_partner, references: partner(id) } }
+              - column: { name: type, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: currency_code, type: varchar(12), constraints: { nullable: false } }
+              - column: { name: enabled, type: boolean, constraints: { nullable: false } }
+              - column: { name: minimum_amount, type: "numeric(19,4)", constraints: { nullable: false } }
+              - column: { name: maximum_amount, type: "numeric(19,4)", constraints: { nullable: false } }
+        - addPrimaryKey:
+            tableName: partner_payment_limit
+            columnNames: partner_id, type, currency_code
+            constraintName: pk_partner_payment_limit
+        - sql:
+            sql: >-
+              alter table partner_payment_limit add constraint ck_partner_payment_limit_type
+              check (type in ('PAYIN', 'PAYOUT'))
+        - sql:
+            sql: >-
+              alter table partner_payment_limit add constraint ck_partner_payment_limit_bounds
+              check (minimum_amount > 0 and maximum_amount >= minimum_amount)
+      rollback:
+        - dropTable: { tableName: partner_payment_limit }

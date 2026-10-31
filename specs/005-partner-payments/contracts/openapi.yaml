@@ -1,0 +1,499 @@
+openapi: 3.1.0
+info:
+  title: NOX Partner Payments API
+  version: 1.0.0
+  description: |
+    Partner pay-in, pay-out, OTP confirmation, and cancellation for connected user links.
+
+    Every error is `application/problem+json` with `type` = `urn:problem:<title>`. Problem titles:
+    `bad_request` (400), `unauthenticated` (401), `forbidden` (403), `not_found` (404),
+    `link_not_actionable` (409, link no longer connected), `idempotency_conflict` (409),
+    `external_id_conflict` (409),
+    `payment_in_progress` (409), `payment_not_actionable` (409), `payment_limit_exceeded` (422),
+    `payment_not_configured` (422), `payment_rejected` (422), `payment_otp_rejected` (422),
+    `payment_processor_unavailable` (503), `payment_unresolved` (503, outcome being reconciled;
+    do not resubmit).
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: api.example.test
+paths:
+  /user-partner-links/by-external-id/{externalLinkId}/payments:
+    post:
+      operationId: initiatePartnerPaymentByExternalLinkId
+      summary: Initiate a payment using the partner's external link identifier
+      description: |
+        Resolves `externalLinkId` within the authenticated partner's links and proceeds only when
+        the most recent established matching link is connected. Requires the existing partner
+        service authorization and configured payment method, currency, and limits.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PartnerServiceId'
+        - $ref: '#/components/parameters/ExternalLinkId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiation'
+      responses:
+        '201':
+          description: Payment initiated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '200':
+          description: An identical idempotent retry returned the existing payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /user-partner-links/by-external-id/{externalLinkId}/payments/{paymentId}/confirmation:
+    post:
+      operationId: confirmPartnerPaymentByExternalLinkId
+      summary: Confirm a payment using external link identifier and user's OTP
+      description: |
+        Resolves the external link within the authenticated partner and confirms only a payment
+        associated with that link. Uses the original account snapshot and serializes confirmation.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PartnerServiceId'
+        - $ref: '#/components/parameters/ExternalLinkId'
+        - $ref: '#/components/parameters/PaymentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentConfirmation'
+      responses:
+        '200':
+          description: Confirmation result returned by payment-core, or the existing confirmed payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/OtpRejected' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /user-partner-links/{userLinkId}/payments/{paymentId}/cancellation:
+    post:
+      operationId: cancelPartnerPaymentByUserLinkId
+      summary: Cancel a payment awaiting OTP
+      description: |
+        Requests cancellation on the user's behalf. The authenticated partner must own the
+        specified user link and payment. Cancellation and confirmation are mutually exclusive;
+        NOX reports cancellation only after payment-core confirms it.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PartnerServiceId'
+        - $ref: '#/components/parameters/UserLinkId'
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: Cancellation result returned by payment-core, or the existing cancelled payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /user-partner-links/by-external-id/{externalLinkId}/payments/{paymentId}/cancellation:
+    post:
+      operationId: cancelPartnerPaymentByExternalLinkId
+      summary: Cancel a payment using the partner's external link identifier
+      description: |
+        Resolves `externalLinkId` within the authenticated partner and cancels only a payment
+        associated with that connected link. Cancellation and confirmation are mutually exclusive.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PartnerServiceId'
+        - $ref: '#/components/parameters/ExternalLinkId'
+        - $ref: '#/components/parameters/PaymentId'
+      responses:
+        '200':
+          description: Cancellation result returned by payment-core, or the existing cancelled payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /user-partner-links/{userLinkId}/payments:
+    post:
+      operationId: initiatePartnerPayment
+      summary: Initiate a pay-in or pay-out
+      description: |
+        Requires a Keycloak service token with the `partner-access` role and the calling
+        partner's `x-service-id`. NOX resolves the connected link and applies that partner's
+        configured account, payment method, currency enablement, and amount limits.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PartnerServiceId'
+        - $ref: '#/components/parameters/UserLinkId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentInitiation'
+            example:
+              type: PAYIN
+              money:
+                amount: 123.45
+                currencyCode: EUR
+              externalId: 76490253-9de4-4988-b757-ad0f13a5c7fd
+              transactionReference: PAM-DEP-20260802-000001
+              description: Deposit to PAM wallet
+      responses:
+        '201':
+          description: Payment initiated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '200':
+          description: An identical idempotent retry returned the existing payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /user-partner-links/{userLinkId}/payments/{paymentId}/confirmation:
+    post:
+      operationId: confirmPartnerPayment
+      summary: Confirm a payment using the user's OTP
+      description: |
+        Requires the same partner authorization and ownership as initiation. NOX uses the original
+        account snapshot. It serializes confirmation attempts; an ambiguous payment-core response
+        is returned as an unresolved payment and is not blindly retried.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PartnerServiceId'
+        - $ref: '#/components/parameters/UserLinkId'
+        - $ref: '#/components/parameters/PaymentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentConfirmation'
+            example:
+              code: '123456'
+      responses:
+        '200':
+          description: Confirmation result returned by payment-core, or the existing confirmed payment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentEnvelope'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/OtpRejected'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PartnerServiceId:
+      name: x-service-id
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Partner client ID resolved only after service token authorization succeeds.
+    UserLinkId:
+      name: userLinkId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ExternalLinkId:
+      name: externalLinkId
+      in: path
+      required: true
+      description: Maps to the link's partner_external_id; resolved only within the calling partner.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+    PaymentId:
+      name: paymentId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Payment-core payment identifier returned as `paymentId` in the initiation response.
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Unique within the submitting partner; same key and payload replay the original payment.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+  schemas:
+    PaymentInitiation:
+      type: object
+      additionalProperties: false
+      required: [type, money, externalId, transactionReference]
+      properties:
+        type:
+          type: string
+          enum: [PAYIN, PAYOUT]
+        money:
+          $ref: '#/components/schemas/Money'
+        externalId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: |
+            The partner's transaction ID; unique across all of the partner's payments, whatever their
+            status. Reusing it under another `Idempotency-Key` returns `external_id_conflict`.
+        transactionReference:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type: [string, 'null']
+          maxLength: 512
+    PaymentConfirmation:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 64
+          writeOnly: true
+    Money:
+      type: object
+      additionalProperties: false
+      required: [amount, currencyCode]
+      properties:
+        amount:
+          type: number
+          exclusiveMinimum: 0
+        currencyCode:
+          type: string
+          minLength: 3
+          maxLength: 12
+    Fee:
+      type: object
+      additionalProperties: false
+      required: [amount, currencyCode]
+      description: Fee charged by payment-core; may be zero.
+      properties:
+        amount:
+          type: number
+          minimum: 0
+        currencyCode:
+          type: string
+    PaymentEnvelope:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: '#/components/schemas/Payment'
+        meta:
+          $ref: '#/components/schemas/Meta'
+    Payment:
+      type: object
+      required:
+        - userLinkId
+        - externalId
+        - paymentId
+        - creationDate
+        - type
+        - money
+        - fee
+        - transactionReference
+        - status
+        - expirationDate
+        - confirmedDate
+      properties:
+        userLinkId:
+          type: string
+          format: uuid
+        externalId:
+          type: string
+        paymentId:
+          type: string
+          description: Payment identifier assigned by payment-core.
+        creationDate:
+          type: string
+          format: date-time
+          description: Payment-core's creation time.
+        type:
+          type: string
+          enum: [PAYIN, PAYOUT]
+        money:
+          $ref: '#/components/schemas/Money'
+        fee:
+          $ref: '#/components/schemas/Fee'
+        transactionReference:
+          type: string
+        status:
+          type: string
+          description: |
+            Normalized NOX payment lifecycle state. `*_UNKNOWN` values are never success; the payment
+            is being reconciled.
+          enum:
+            - INITIATING
+            - AWAITING_OTP
+            - CONFIRMING
+            - CANCELLING
+            - CONFIRMED
+            - CANCELLED
+            - FAILED
+            - EXPIRED
+            - INITIATION_UNKNOWN
+            - CONFIRMATION_UNKNOWN
+            - CANCELLATION_UNKNOWN
+        expirationDate:
+          type: [string, 'null']
+          format: date-time
+        confirmedDate:
+          type: [string, 'null']
+          format: date-time
+    Meta:
+      type: object
+      required: [traceId, timestamp, instance]
+      properties:
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        instance:
+          type: string
+    Problem:
+      type: object
+      required: [type, title, detail, traceId, timestamp, instance]
+      properties:
+        type:
+          type: string
+          example: urn:problem:payment_limit_exceeded
+        title:
+          type: string
+        detail:
+          type: string
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        instance:
+          type: string
+  responses:
+    BadRequest:
+      description: "`bad_request`: malformed request, missing `Idempotency-Key`, invalid or unknown field."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unauthenticated:
+      description: Missing or invalid access token.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Caller lacks partner authorization.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: "`not_found`: user link or payment is not visible to this partner."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: |
+        `idempotency_conflict` (key reused with different details), `external_id_conflict` (the
+        partner already has a payment with this `externalId`), `payment_in_progress` (another
+        request is processing the payment), `payment_not_actionable` (not awaiting the OTP, or a
+        concurrent confirm/cancel won), or `link_not_actionable` (the link is no longer connected).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unprocessable:
+      description: |
+        `payment_limit_exceeded` (currency disabled or amount outside the partner's limits),
+        `payment_not_configured` (no active account or payment method), or `payment_rejected`
+        (payment-core declined the payment).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    OtpRejected:
+      description: "`payment_otp_rejected`: payment-core did not accept the code; the payment still awaits the OTP."
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Unavailable:
+      description: |
+        `payment_processor_unavailable` (payment-core not called; safe to retry later) or
+        `payment_unresolved` (outcome unknown, payment kept for reconciliation; do not resubmit).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

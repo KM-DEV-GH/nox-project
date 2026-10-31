@@ -1,0 +1,16 @@
+# The partner's one active payment-core identity, managed internally (data-model.md: Partner Payment
+# Account). Rotation replaces the row; payments keep their own snapshot.
+databaseChangeLog:
+  - changeSet:
+      id: 009-partner-payment-account
+      author: nox
+      changes:
+        - createTable:
+            tableName: partner_payment_account
+            columns:
+              - column: { name: partner_id, type: uuid, constraints: { primaryKey: true, primaryKeyName: pk_partner_payment_account, nullable: false, foreignKeyName: fk_partner_payment_account_partner, references: partner(id) } }
+              - column: { name: provider_user_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: account_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+      rollback:
+        - dropTable: { tableName: partner_payment_account }

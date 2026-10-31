@@ -1,0 +1,15 @@
+# Event publications still incomplete after the configured age, flagged for alerting (research.md 3a).
+databaseChangeLog:
+  - changeSet:
+      id: 005-partner-link-stuck-publication
+      author: nox
+      changes:
+        - createTable:
+            tableName: partner_link_stuck_publication
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: event_publication_id, type: uuid, constraints: { nullable: false, unique: true, uniqueConstraintName: uq_stuck_publication_event_publication } }
+              - column: { name: event_type, type: varchar(512), constraints: { nullable: false } }
+              - column: { name: flagged_at, type: timestamp with time zone, constraints: { nullable: false } }
+      rollback:
+        - dropTable: { tableName: partner_link_stuck_publication }

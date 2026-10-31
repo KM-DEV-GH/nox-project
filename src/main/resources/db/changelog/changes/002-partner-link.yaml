@@ -1,0 +1,43 @@
+# The connection between one user and one partner (data-model.md: PartnerLink).
+databaseChangeLog:
+  - changeSet:
+      id: 002-partner-link
+      author: nox
+      changes:
+        - createTable:
+            tableName: partner_link
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: user_id, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: user_keycloak_id, type: varchar(255), constraints: { nullable: false } }
+              - column: { name: partner_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_partner_link_partner, references: partner(id) } }
+              - column: { name: partner_external_id, type: varchar(128), constraints: { nullable: false } }
+              - column: { name: licensee_id, type: varchar(64), constraints: { nullable: false } }
+              - column: { name: status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: expires_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: version, type: bigint, constraints: { nullable: false } }
+              - column: { name: created_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: updated_at, type: timestamp with time zone, constraints: { nullable: false } }
+        - sql:
+            sql: >-
+              alter table partner_link add constraint ck_partner_link_status
+              check (status in ('PENDING', 'CONNECTED', 'REJECTED', 'EXPIRED', 'REVOKED', 'SUSPENDED'))
+        # At most one active link per user per partner (FR-003, SC-007). Liquibase has no partial index change.
+        - sql:
+            sql: >-
+              create unique index uq_partner_link_active_user_partner on partner_link (user_id, partner_id)
+              where status in ('PENDING', 'CONNECTED')
+        - createIndex:
+            tableName: partner_link
+            indexName: ix_partner_link_partner_external_created
+            columns:
+              - column: { name: partner_id }
+              - column: { name: partner_external_id }
+              - column: { name: created_at, descending: true }
+        - createIndex:
+            tableName: partner_link
+            indexName: ix_partner_link_user_keycloak
+            columns:
+              - column: { name: user_keycloak_id }
+      rollback:
+        - dropTable: { tableName: partner_link }

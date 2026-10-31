@@ -1,0 +1,34 @@
+# Append-only record of each written link transition (data-model.md: PartnerLinkHistoryEntry).
+databaseChangeLog:
+  - changeSet:
+      id: 004-partner-link-history
+      author: nox
+      changes:
+        - createTable:
+            tableName: partner_link_history
+            columns:
+              - column: { name: id, type: uuid, constraints: { primaryKey: true, nullable: false } }
+              - column: { name: link_id, type: uuid, constraints: { nullable: false, foreignKeyName: fk_partner_link_history_link, references: partner_link(id) } }
+              - column: { name: from_status, type: varchar(32) }
+              - column: { name: to_status, type: varchar(32), constraints: { nullable: false } }
+              - column: { name: actor_type, type: varchar(16), constraints: { nullable: false } }
+              - column: { name: actor_reference, type: varchar(255) }
+              - column: { name: occurred_at, type: timestamp with time zone, constraints: { nullable: false } }
+              - column: { name: reason, type: varchar(64), constraints: { nullable: false } }
+        - sql:
+            sql: >-
+              alter table partner_link_history add constraint ck_partner_link_history_actor_type
+              check (actor_type in ('USER', 'PARTNER', 'NOX'))
+        - sql:
+            sql: >-
+              alter table partner_link_history add constraint ck_partner_link_history_reason
+              check (reason in ('link_created', 'user_approved', 'user_rejected', 'user_revoked',
+              'expired_on_late_action', 'expired_on_new_request'))
+        - createIndex:
+            tableName: partner_link_history
+            indexName: ix_partner_link_history_link_occurred
+            columns:
+              - column: { name: link_id }
+              - column: { name: occurred_at }
+      rollback:
+        - dropTable: { tableName: partner_link_history }
