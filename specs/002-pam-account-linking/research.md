@@ -222,3 +222,9 @@ standard and testable (the token endpoint is stubbed by the same WireMock contai
 
 **Alternatives considered**: hand-written token fetching and caching (duplicates Spring Security);
 api-key only (rejected — Owl expects both).
+
+**Update (2026-10-31)**: the client, token interceptor and resilience are shared with payment-core in
+`com.nox.adapter.out.http` (`HttpClients`, `ResilientCall`). Owl lookups now run under Resilience4j
+retry (bounded by `max-attempts`, exponential backoff) and a circuit breaker with the same defaults
+as payment-core (`nox.partner-link.owl.circuit-breaker.*`). While the circuit is open a lookup fails
+fast as `UserLookupResult.Failed` instead of retrying against an unavailable Owl.

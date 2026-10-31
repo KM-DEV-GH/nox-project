@@ -76,8 +76,8 @@ public class PaymentCoreWireMockSupport {
 
     public void initiationAnswers(
             PaymentType type, String reference, String paymentCoreId, String status, String amount, String currency) {
-        paymentCore.register(initiation(type, reference)
-                .willReturn(okJson(payment(paymentCoreId, status, amount, currency, null))));
+        paymentCore.register(
+                initiation(type, reference).willReturn(okJson(payment(paymentCoreId, status, amount, currency, null))));
     }
 
     public void initiationStatus(PaymentType type, String reference, int status) {
@@ -205,7 +205,8 @@ public class PaymentCoreWireMockSupport {
     }
 
     /** The payment-core envelope, including fields NOX must ignore and never expose. */
-    private static String payment(String paymentCoreId, String status, String amount, String currency, String confirmedAt) {
+    private static String payment(
+            String paymentCoreId, String status, String amount, String currency, String confirmedAt) {
         return """
                 {"data":{"payment_id":"%s","account_id":"secret-account","status":"%s",
                   "requestedPaymentMethod":"ANY","paymentMethod":"ANY",

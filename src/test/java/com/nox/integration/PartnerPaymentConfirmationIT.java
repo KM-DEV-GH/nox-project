@@ -68,8 +68,12 @@ class PartnerPaymentConfirmationIT extends PartnerPaymentIntegrationSupport {
         paymentCore.confirmationAnswers(payment.paymentCoreId(), "COMPLETED", "50", "EUR");
         String path = PaymentApi.confirmation(payments, payment.paymentCoreId());
 
-        assertProblem(api.confirm(partner, payments, payment.paymentCoreId(), "000000"), 422, "payment_otp_rejected", path);
-        assertThat(this.payments.findByPaymentCoreId(payment.paymentCoreId()).orElseThrow().status())
+        assertProblem(
+                api.confirm(partner, payments, payment.paymentCoreId(), "000000"), 422, "payment_otp_rejected", path);
+        assertThat(this.payments
+                        .findByPaymentCoreId(payment.paymentCoreId())
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.AWAITING_OTP);
 
         EntityExchangeResult<String> retried = api.confirm(partner, payments, payment.paymentCoreId(), "123456");
@@ -87,7 +91,8 @@ class PartnerPaymentConfirmationIT extends PartnerPaymentIntegrationSupport {
         assertThat(result.getStatus().value()).isEqualTo(200);
         assertThat(PaymentApi.json(result).at("/data/status").asString()).isEqualTo("EXPIRED");
         String path = PaymentApi.confirmation(payments, payment.paymentCoreId());
-        assertProblem(api.confirm(partner, payments, payment.paymentCoreId(), "123456"), 409, "payment_not_actionable", path);
+        assertProblem(
+                api.confirm(partner, payments, payment.paymentCoreId(), "123456"), 409, "payment_not_actionable", path);
     }
 
     @Test
@@ -111,8 +116,10 @@ class PartnerPaymentConfirmationIT extends PartnerPaymentIntegrationSupport {
         paymentCore.confirmationDelayed(payment.paymentCoreId(), "COMPLETED", "50", "EUR", Duration.ofMillis(500));
 
         List<Integer> statuses = List.of(
-                        CompletableFuture.supplyAsync(() -> api.confirm(partner, payments, payment.paymentCoreId(), "1")),
-                        CompletableFuture.supplyAsync(() -> api.confirm(partner, payments, payment.paymentCoreId(), "1")))
+                        CompletableFuture.supplyAsync(
+                                () -> api.confirm(partner, payments, payment.paymentCoreId(), "1")),
+                        CompletableFuture.supplyAsync(
+                                () -> api.confirm(partner, payments, payment.paymentCoreId(), "1")))
                 .stream()
                 .map(CompletableFuture::join)
                 .map(result -> result.getStatus().value())
@@ -120,7 +127,10 @@ class PartnerPaymentConfirmationIT extends PartnerPaymentIntegrationSupport {
 
         assertThat(statuses).containsExactlyInAnyOrder(200, 409);
         assertThat(paymentCore.confirmations(payment.paymentCoreId())).hasSize(1);
-        assertThat(this.payments.findByPaymentCoreId(payment.paymentCoreId()).orElseThrow().status())
+        assertThat(this.payments
+                        .findByPaymentCoreId(payment.paymentCoreId())
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.CONFIRMED);
     }
 
@@ -173,13 +183,18 @@ class PartnerPaymentConfirmationIT extends PartnerPaymentIntegrationSupport {
         String path = PaymentApi.confirmation(payments, payment.paymentCoreId());
 
         long started = System.nanoTime();
-        assertProblem(api.confirm(partner, payments, payment.paymentCoreId(), "123456"), 503, "payment_unresolved", path);
+        assertProblem(
+                api.confirm(partner, payments, payment.paymentCoreId(), "123456"), 503, "payment_unresolved", path);
 
         assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofSeconds(6));
-        assertThat(this.payments.findByPaymentCoreId(payment.paymentCoreId()).orElseThrow().status())
+        assertThat(this.payments
+                        .findByPaymentCoreId(payment.paymentCoreId())
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.CONFIRMATION_UNKNOWN);
         int attempts = paymentCore.confirmations(payment.paymentCoreId()).size();
-        assertProblem(api.confirm(partner, payments, payment.paymentCoreId(), "123456"), 503, "payment_unresolved", path);
+        assertProblem(
+                api.confirm(partner, payments, payment.paymentCoreId(), "123456"), 503, "payment_unresolved", path);
         assertThat(paymentCore.confirmations(payment.paymentCoreId())).hasSize(attempts);
     }
 
@@ -190,15 +205,14 @@ class PartnerPaymentConfirmationIT extends PartnerPaymentIntegrationSupport {
         String path = PaymentApi.confirmation(payments, payment.paymentCoreId());
 
         assertProblem(api.post(TOKENS.bff(), partner.clientId(), path, null, "{}"), 400, "bad_request", path);
-        assertProblem(
-                api.post(TOKENS.bff(), partner.clientId(), path, null, """
-                        {"code":"1","accountId":"other"}"""),
-                400,
-                "bad_request",
-                path);
+        assertProblem(api.post(TOKENS.bff(), partner.clientId(), path, null, """
+                        {"code":"1","accountId":"other"}"""), 400, "bad_request", path);
         assertProblem(api.post(null, partner.clientId(), path, null, "{\"code\":\"1\"}"), 401, "unauthenticated", path);
         assertProblem(
-                api.post(TOKENS.internalBff(), partner.clientId(), path, null, "{\"code\":\"1\"}"), 403, "forbidden", path);
+                api.post(TOKENS.internalBff(), partner.clientId(), path, null, "{\"code\":\"1\"}"),
+                403,
+                "forbidden",
+                path);
         assertThat(paymentCore.confirmations(payment.paymentCoreId())).isEmpty();
     }
 }

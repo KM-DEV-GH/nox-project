@@ -10,6 +10,7 @@ import com.nox.domain.partnerlink.PartnerLinkHistoryEntry;
 import com.nox.domain.partnerlink.PartnerLinkStatus;
 import com.nox.domain.partnerlink.TransitionReason;
 import java.util.UUID;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 class GetMyPartnerLinkHistoryServiceTest {
@@ -33,7 +34,10 @@ class GetMyPartnerLinkHistoryServiceTest {
         fixture.history.append(
                 entry(UUID.randomUUID(), null, PartnerLinkStatus.PENDING, TransitionReason.LINK_CREATED, 30));
 
-        assertThat(service.history(link.id(), USER_ID)).get().asList().containsExactly(created, approved, revoked);
+        assertThat(service.history(link.id(), USER_ID))
+                .get()
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .containsExactly(created, approved, revoked);
     }
 
     @Test

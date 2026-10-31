@@ -104,7 +104,15 @@ class InitiatePaymentServicePayoutTest {
 
         assertThat(service.initiate(payout("key-1", EUR_75, byId())).created()).isFalse();
         assertFailure(
-                new Command(PARTNER_ID, byId(), "key-1", PaymentType.PAYIN, Money.of("5", "EUR"), "tx-key-1", "ref-1", null),
+                new Command(
+                        PARTNER_ID,
+                        byId(),
+                        "key-1",
+                        PaymentType.PAYIN,
+                        Money.of("5", "EUR"),
+                        "tx-key-1",
+                        "ref-1",
+                        null),
                 PaymentFailure.IDEMPOTENCY_CONFLICT);
         assertThat(processor.initiations()).hasSize(1);
     }
@@ -112,12 +120,16 @@ class InitiatePaymentServicePayoutTest {
     @Test
     void aPayoutWithoutAConfiguredMethodIsRefused() {
         InitiatePaymentService payinOnly = new InitiatePaymentService(
-                links, payments, settings, processor, Clock.fixed(NOW, ZoneOffset.UTC),
+                links,
+                payments,
+                settings,
+                processor,
+                Clock.fixed(NOW, ZoneOffset.UTC),
                 Map.of(PaymentType.PAYIN, "BANK_PAYIN"));
 
         assertThatThrownBy(() -> payinOnly.initiate(payout("key-1", EUR_75, byId())))
-                .isInstanceOfSatisfying(PaymentException.class, e -> assertThat(e.failure())
-                        .isEqualTo(PaymentFailure.NOT_CONFIGURED));
+                .isInstanceOfSatisfying(
+                        PaymentException.class, e -> assertThat(e.failure()).isEqualTo(PaymentFailure.NOT_CONFIGURED));
     }
 
     private LinkReference byId() {
@@ -134,7 +146,7 @@ class InitiatePaymentServicePayoutTest {
 
     private void assertFailure(Command command, PaymentFailure failure) {
         assertThatThrownBy(() -> service.initiate(command))
-                .isInstanceOfSatisfying(PaymentException.class, e -> assertThat(e.failure())
-                        .isEqualTo(failure));
+                .isInstanceOfSatisfying(
+                        PaymentException.class, e -> assertThat(e.failure()).isEqualTo(failure));
     }
 }

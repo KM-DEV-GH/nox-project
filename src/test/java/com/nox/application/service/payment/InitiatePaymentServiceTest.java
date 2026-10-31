@@ -99,7 +99,9 @@ class InitiatePaymentServiceTest {
     void theMostRecentEstablishedLinkMustBeConnected() {
         link(PARTNER_ID, "external-1", PartnerLinkStatus.REVOKED, NOW.minusSeconds(10));
 
-        assertFailure(command("key-1", new LinkReference.ByExternalId("external-1"), EUR_100), PaymentFailure.LINK_NOT_CONNECTED);
+        assertFailure(
+                command("key-1", new LinkReference.ByExternalId("external-1"), EUR_100),
+                PaymentFailure.LINK_NOT_CONNECTED);
         assertNothingInitiated();
     }
 
@@ -108,7 +110,8 @@ class InitiatePaymentServiceTest {
         PartnerLink foreign = link(UUID.randomUUID(), "external-2", PartnerLinkStatus.CONNECTED, NOW);
 
         assertFailure(command("key-1", new LinkReference.ById(foreign.id()), EUR_100), PaymentFailure.LINK_NOT_FOUND);
-        assertFailure(command("key-2", new LinkReference.ByExternalId("external-2"), EUR_100), PaymentFailure.LINK_NOT_FOUND);
+        assertFailure(
+                command("key-2", new LinkReference.ByExternalId("external-2"), EUR_100), PaymentFailure.LINK_NOT_FOUND);
         assertNothingInitiated();
     }
 
@@ -117,7 +120,8 @@ class InitiatePaymentServiceTest {
         PartnerLink pending = link(PARTNER_ID, "external-3", PartnerLinkStatus.PENDING, NOW);
 
         assertFailure(command("key-1", new LinkReference.ById(pending.id()), EUR_100), PaymentFailure.LINK_NOT_FOUND);
-        assertFailure(command("key-2", new LinkReference.ById(UUID.randomUUID()), EUR_100), PaymentFailure.LINK_NOT_FOUND);
+        assertFailure(
+                command("key-2", new LinkReference.ById(UUID.randomUUID()), EUR_100), PaymentFailure.LINK_NOT_FOUND);
         assertNothingInitiated();
     }
 
@@ -160,8 +164,15 @@ class InitiatePaymentServiceTest {
         settings.limit(other, limit(PaymentType.PAYIN, "EUR", true, "1", "1000"));
 
         assertFailure(
-                new Command(other, new LinkReference.ById(otherLink.id()), "key-1", PaymentType.PAYIN, EUR_100,
-                        "external-tx-1", "reference-1", null),
+                new Command(
+                        other,
+                        new LinkReference.ById(otherLink.id()),
+                        "key-1",
+                        PaymentType.PAYIN,
+                        EUR_100,
+                        "external-tx-1",
+                        "reference-1",
+                        null),
                 PaymentFailure.NOT_CONFIGURED);
         assertNothingInitiated();
     }
@@ -209,7 +220,8 @@ class InitiatePaymentServiceTest {
                 new Command(PARTNER_ID, byId(), "key-1", PaymentType.PAYIN, EUR_100, "tx-key-1", "reference-2", null),
                 PaymentFailure.IDEMPOTENCY_CONFLICT);
         PartnerLink another = link(PARTNER_ID, "external-5", PartnerLinkStatus.CONNECTED, NOW);
-        assertFailure(command("key-1", new LinkReference.ById(another.id()), EUR_100), PaymentFailure.IDEMPOTENCY_CONFLICT);
+        assertFailure(
+                command("key-1", new LinkReference.ById(another.id()), EUR_100), PaymentFailure.IDEMPOTENCY_CONFLICT);
         assertThat(processor.initiations()).hasSize(1);
     }
 
@@ -222,8 +234,14 @@ class InitiatePaymentServiceTest {
         settings.limit(other, limit(PaymentType.PAYIN, "EUR", true, "1", "1000"));
 
         Initiation theirs = service.initiate(new Command(
-                other, new LinkReference.ById(otherLink.id()), "key-1", PaymentType.PAYIN, EUR_100,
-                "external-tx-1", "reference-1", null));
+                other,
+                new LinkReference.ById(otherLink.id()),
+                "key-1",
+                PaymentType.PAYIN,
+                EUR_100,
+                "external-tx-1",
+                "reference-1",
+                null));
 
         assertThat(theirs.created()).isTrue();
         assertThat(payments.size()).isEqualTo(2);
@@ -255,7 +273,8 @@ class InitiatePaymentServiceTest {
         assertFailure(withExternalId("key-1", "tx-shared"), PaymentFailure.PROCESSOR_UNAVAILABLE);
         processor.onInitiate(request -> StubPaymentProcessor.accepted(request.money()));
 
-        assertThat(service.initiate(withExternalId("key-2", "tx-shared")).created()).isTrue();
+        assertThat(service.initiate(withExternalId("key-2", "tx-shared")).created())
+                .isTrue();
     }
 
     @Test
@@ -267,8 +286,14 @@ class InitiatePaymentServiceTest {
         settings.limit(other, limit(PaymentType.PAYIN, "EUR", true, "1", "1000"));
 
         Initiation theirs = service.initiate(new Command(
-                other, new LinkReference.ById(otherLink.id()), "key-2", PaymentType.PAYIN, EUR_100,
-                "tx-shared", "reference-1", null));
+                other,
+                new LinkReference.ById(otherLink.id()),
+                "key-2",
+                PaymentType.PAYIN,
+                EUR_100,
+                "tx-shared",
+                "reference-1",
+                null));
 
         assertThat(theirs.created()).isTrue();
     }
@@ -277,7 +302,11 @@ class InitiatePaymentServiceTest {
     @Test
     void aConcurrentRequestWithTheSameExternalIdIsAConflict() {
         payments.interleave(() -> new InitiatePaymentService(
-                        links, payments, settings, new StubPaymentProcessor(), Clock.fixed(NOW, ZoneOffset.UTC),
+                        links,
+                        payments,
+                        settings,
+                        new StubPaymentProcessor(),
+                        Clock.fixed(NOW, ZoneOffset.UTC),
                         Map.of(PaymentType.PAYIN, "BANK_PAYIN"))
                 .initiate(withExternalId("key-2", "tx-shared")));
 
@@ -290,7 +319,11 @@ class InitiatePaymentServiceTest {
     void aConcurrentRequestWithTheSameKeyGetsTheWinnersPayment() {
         Command command = command("key-1", byId(), EUR_100);
         payments.interleave(() -> new InitiatePaymentService(
-                        links, payments, settings, new StubPaymentProcessor(), Clock.fixed(NOW, ZoneOffset.UTC),
+                        links,
+                        payments,
+                        settings,
+                        new StubPaymentProcessor(),
+                        Clock.fixed(NOW, ZoneOffset.UTC),
                         Map.of(PaymentType.PAYIN, "BANK_PAYIN"))
                 .initiate(command));
 
@@ -349,7 +382,8 @@ class InitiatePaymentServiceTest {
         assertThat(payments.size()).isZero();
 
         processor.onInitiate(request -> StubPaymentProcessor.accepted(request.money()));
-        assertThat(service.initiate(command("key-1", byId(), EUR_100)).created()).isTrue();
+        assertThat(service.initiate(command("key-1", byId(), EUR_100)).created())
+                .isTrue();
     }
 
     @Test
@@ -373,8 +407,7 @@ class InitiatePaymentServiceTest {
     }
 
     private static Command command(String key, LinkReference link, Money money) {
-        return new Command(
-                PARTNER_ID, link, key, PaymentType.PAYIN, money, "tx-" + key, "reference-1", "a deposit");
+        return new Command(PARTNER_ID, link, key, PaymentType.PAYIN, money, "tx-" + key, "reference-1", "a deposit");
     }
 
     private Command withExternalId(String key, String externalId) {
@@ -408,8 +441,8 @@ class InitiatePaymentServiceTest {
 
     private void assertFailure(Command command, PaymentFailure failure) {
         assertThatThrownBy(() -> service.initiate(command))
-                .isInstanceOfSatisfying(PaymentException.class, e -> assertThat(e.failure())
-                        .isEqualTo(failure));
+                .isInstanceOfSatisfying(
+                        PaymentException.class, e -> assertThat(e.failure()).isEqualTo(failure));
     }
 
     private void assertNothingInitiated() {

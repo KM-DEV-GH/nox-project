@@ -44,8 +44,7 @@ public interface PaymentProcessorPort {
      *
      * @param otp the user's one-time code
      */
-    record ConfirmationRequest(
-            String paymentCoreId, String providerUserId, String accountId, Money money, String otp) {
+    record ConfirmationRequest(String paymentCoreId, String providerUserId, String accountId, Money money, String otp) {
 
         /** Never prints the OTP, the account identifiers or the amount. */
         @Override

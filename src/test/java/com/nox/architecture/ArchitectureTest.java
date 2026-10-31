@@ -133,11 +133,11 @@ class ArchitectureTest {
             .resideInAPackage("com.nox.adapter.out.paymentcore..")
             .allowEmptyShould(true);
 
-    /** Resilience for payment-core stays inside its adapter (constitution Principle XIII). */
+    /** Resilience for every outbound call lives in one shared helper (constitution Principle XIII). */
     @ArchTest
-    static final ArchRule resilience4jStaysInThePaymentCoreAdapter = noClasses()
+    static final ArchRule resilience4jStaysInTheSharedHttpHelper = noClasses()
             .that()
-            .resideOutsideOfPackage("com.nox.adapter.out.paymentcore..")
+            .resideOutsideOfPackage("com.nox.adapter.out.http..")
             .should()
             .dependOnClassesThat()
             .resideInAPackage("io.github.resilience4j..")
@@ -170,15 +170,16 @@ class ArchitectureTest {
             .that()
             .resideInAPackage("com.nox.infrastructure..")
             .should()
-            .callConstructorWhere(new DescribedPredicate<JavaConstructorCall>(
-                    "the target is an outbound adapter type not allowed to be built by the composition root") {
-                @Override
-                public boolean test(JavaConstructorCall call) {
-                    JavaClass target = call.getTargetOwner();
-                    return target.getPackageName().startsWith("com.nox.adapter.out")
-                            && CONSTRUCTED_BY_INFRASTRUCTURE.stream().noneMatch(target::isEquivalentTo);
-                }
-            })
+            .callConstructorWhere(
+                    new DescribedPredicate<JavaConstructorCall>(
+                            "the target is an outbound adapter type not allowed to be built by the composition root") {
+                        @Override
+                        public boolean test(JavaConstructorCall call) {
+                            JavaClass target = call.getTargetOwner();
+                            return target.getPackageName().startsWith("com.nox.adapter.out")
+                                    && CONSTRUCTED_BY_INFRASTRUCTURE.stream().noneMatch(target::isEquivalentTo);
+                        }
+                    })
             .allowEmptyShould(true);
 
     @ArchTest

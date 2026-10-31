@@ -29,16 +29,14 @@ final class PaymentLinks {
 
     /** @throws PaymentException {@code LINK_NOT_FOUND} for any link the partner may not see */
     PartnerLink resolve(UUID partnerId, LinkReference reference) {
-        Optional<PartnerLink> link =
-                switch (reference) {
-                    case LinkReference.ById byId ->
-                        links.findById(byId.userLinkId())
-                                .filter(found -> found.partnerId().equals(partnerId))
-                                .filter(PartnerLink::isEstablished);
-                    case LinkReference.ByExternalId byExternalId ->
-                        links.findLatestByPartnerAndExternalId(
-                                partnerId, byExternalId.externalLinkId(), ESTABLISHED);
-                };
+        Optional<PartnerLink> link = switch (reference) {
+            case LinkReference.ById byId ->
+                links.findById(byId.userLinkId())
+                        .filter(found -> found.partnerId().equals(partnerId))
+                        .filter(PartnerLink::isEstablished);
+            case LinkReference.ByExternalId byExternalId ->
+                links.findLatestByPartnerAndExternalId(partnerId, byExternalId.externalLinkId(), ESTABLISHED);
+        };
         return link.orElseThrow(() -> new PaymentException(PaymentFailure.LINK_NOT_FOUND));
     }
 

@@ -25,7 +25,8 @@ class PartnerPaymentCancellationIT extends PartnerPaymentIntegrationSupport {
 
     @Test
     void cancelsAPendingPaymentThroughEitherIdentifierWithTheOriginalAccount() {
-        for (String payments : new String[] {PaymentApi.byLinkId(link.linkId()), PaymentApi.byExternalId(link.externalId())}) {
+        for (String payments :
+                new String[] {PaymentApi.byLinkId(link.linkId()), PaymentApi.byExternalId(link.externalId())}) {
             Payment payment = awaitingOtp(PaymentType.PAYIN, payments, "60");
             fixtures.activeAccount(partner, PROVIDER_USER_ID, "account-rotated");
             paymentCore.cancellationAnswers(payment.paymentCoreId(), "CANCELLED", "60", "EUR");
@@ -36,8 +37,10 @@ class PartnerPaymentCancellationIT extends PartnerPaymentIntegrationSupport {
             JsonNode body = PaymentApi.json(result);
             ContractAssertions.assertMatchesSchema(body, "PaymentEnvelope");
             assertThat(body.at("/data/status").asString()).isEqualTo("CANCELLED");
-            JsonNode upstream = JSON.readTree(
-                    paymentCore.cancellations(payment.paymentCoreId()).getFirst().getBodyAsString());
+            JsonNode upstream = JSON.readTree(paymentCore
+                    .cancellations(payment.paymentCoreId())
+                    .getFirst()
+                    .getBodyAsString());
             assertThat(upstream.at("/provider/accountId").asString()).isEqualTo(ACCOUNT_ID);
             assertThat(upstream.has("otp_code")).isFalse();
             fixtures.activeAccount(partner, PROVIDER_USER_ID, ACCOUNT_ID);
@@ -89,7 +92,8 @@ class PartnerPaymentCancellationIT extends PartnerPaymentIntegrationSupport {
         paymentCore.cancellationAnswers(payment.paymentCoreId(), "CANCELLED", "60", "EUR");
 
         List<Integer> statuses = List.of(
-                        CompletableFuture.supplyAsync(() -> api.confirm(partner, payments, payment.paymentCoreId(), "1")),
+                        CompletableFuture.supplyAsync(
+                                () -> api.confirm(partner, payments, payment.paymentCoreId(), "1")),
                         CompletableFuture.supplyAsync(() -> api.cancel(partner, payments, payment.paymentCoreId())))
                 .stream()
                 .map(CompletableFuture::join)
@@ -100,7 +104,10 @@ class PartnerPaymentCancellationIT extends PartnerPaymentIntegrationSupport {
         int upstreamCalls = paymentCore.confirmations(payment.paymentCoreId()).size()
                 + paymentCore.cancellations(payment.paymentCoreId()).size();
         assertThat(upstreamCalls).isEqualTo(1);
-        assertThat(this.payments.findByPaymentCoreId(payment.paymentCoreId()).orElseThrow().status())
+        assertThat(this.payments
+                        .findByPaymentCoreId(payment.paymentCoreId())
+                        .orElseThrow()
+                        .status())
                 .isIn(PaymentStatus.CONFIRMED, PaymentStatus.CANCELLED);
     }
 
@@ -109,7 +116,9 @@ class PartnerPaymentCancellationIT extends PartnerPaymentIntegrationSupport {
         Payment payment = awaitingOtp(PaymentType.PAYIN, PaymentApi.byLinkId(link.linkId()), "60");
         EstablishedLink otherLink = fixtures.connectedLink(partner);
 
-        for (String payments : new String[] {PaymentApi.byLinkId(otherLink.linkId()), PaymentApi.byExternalId(otherLink.externalId())}) {
+        for (String payments :
+                new String[] {PaymentApi.byLinkId(otherLink.linkId()), PaymentApi.byExternalId(otherLink.externalId())
+                }) {
             assertProblem(
                     api.cancel(partner, payments, payment.paymentCoreId()),
                     404,
@@ -134,7 +143,10 @@ class PartnerPaymentCancellationIT extends PartnerPaymentIntegrationSupport {
 
         assertProblem(api.cancel(partner, payments, payment.paymentCoreId()), 503, "payment_unresolved", path);
 
-        assertThat(this.payments.findByPaymentCoreId(payment.paymentCoreId()).orElseThrow().status())
+        assertThat(this.payments
+                        .findByPaymentCoreId(payment.paymentCoreId())
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.CANCELLATION_UNKNOWN);
         int attempts = paymentCore.cancellations(payment.paymentCoreId()).size();
         assertProblem(api.cancel(partner, payments, payment.paymentCoreId()), 503, "payment_unresolved", path);

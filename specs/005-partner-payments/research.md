@@ -69,6 +69,11 @@
   Confirmation does not. Retrying an ambiguous confirmation without an upstream deduplication
   guarantee could complete a payment twice. Resilience4j documents circuit breaker behavior and
   Spring's `RestClient` supports synchronous intercepted requests.
+- **Update (2026-10-31)**: retry is now Resilience4j `Retry` (2.4.0, exponential backoff, same
+  `max-attempts`/`backoff` settings), replacing Spring's `RetryTemplate`, and both retry and the
+  circuit breaker live in one helper shared with the Owl adapter (`com.nox.adapter.out.http.ResilientCall`).
+  Behaviour is unchanged: a client error is never retried or counted, an open circuit before any
+  attempt is `NotAttempted`, and a circuit that opens mid-retry is `Unknown`.
 - **Alternatives considered**: Retry all 5xx/timeouts, including confirmation. Rejected because
   timeout does not prove that the remote transaction did not complete.
 - **Resolved 2026-10-31 (project owner)**: payment-core deduplicates repeated confirm and cancel

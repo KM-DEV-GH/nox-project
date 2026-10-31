@@ -61,21 +61,20 @@ public class GlobalExceptionHandler {
     /** Logged by failure kind only: never amounts, account identifiers, tokens or OTPs. */
     @ExceptionHandler(PaymentException.class)
     ResponseEntity<ProblemDetail> payment(PaymentException exception, HttpServletRequest request) {
-        ProblemType type =
-                switch (exception.failure()) {
-                    case LINK_NOT_FOUND, PAYMENT_NOT_FOUND -> ProblemType.NOT_FOUND;
-                    case LINK_NOT_CONNECTED -> ProblemType.LINK_NOT_ACTIONABLE;
-                    case LIMIT_EXCEEDED -> ProblemType.PAYMENT_LIMIT_EXCEEDED;
-                    case NOT_CONFIGURED -> ProblemType.PAYMENT_NOT_CONFIGURED;
-                    case IDEMPOTENCY_CONFLICT -> ProblemType.IDEMPOTENCY_CONFLICT;
-                    case EXTERNAL_ID_CONFLICT -> ProblemType.EXTERNAL_ID_CONFLICT;
-                    case IN_PROGRESS -> ProblemType.PAYMENT_IN_PROGRESS;
-                    case NOT_ACTIONABLE -> ProblemType.PAYMENT_NOT_ACTIONABLE;
-                    case REJECTED -> ProblemType.PAYMENT_REJECTED;
-                    case OTP_REJECTED -> ProblemType.PAYMENT_OTP_REJECTED;
-                    case PROCESSOR_UNAVAILABLE -> ProblemType.PAYMENT_PROCESSOR_UNAVAILABLE;
-                    case UNRESOLVED -> ProblemType.PAYMENT_UNRESOLVED;
-                };
+        ProblemType type = switch (exception.failure()) {
+            case LINK_NOT_FOUND, PAYMENT_NOT_FOUND -> ProblemType.NOT_FOUND;
+            case LINK_NOT_CONNECTED -> ProblemType.LINK_NOT_ACTIONABLE;
+            case LIMIT_EXCEEDED -> ProblemType.PAYMENT_LIMIT_EXCEEDED;
+            case NOT_CONFIGURED -> ProblemType.PAYMENT_NOT_CONFIGURED;
+            case IDEMPOTENCY_CONFLICT -> ProblemType.IDEMPOTENCY_CONFLICT;
+            case EXTERNAL_ID_CONFLICT -> ProblemType.EXTERNAL_ID_CONFLICT;
+            case IN_PROGRESS -> ProblemType.PAYMENT_IN_PROGRESS;
+            case NOT_ACTIONABLE -> ProblemType.PAYMENT_NOT_ACTIONABLE;
+            case REJECTED -> ProblemType.PAYMENT_REJECTED;
+            case OTP_REJECTED -> ProblemType.PAYMENT_OTP_REJECTED;
+            case PROCESSOR_UNAVAILABLE -> ProblemType.PAYMENT_PROCESSOR_UNAVAILABLE;
+            case UNRESOLVED -> ProblemType.PAYMENT_UNRESOLVED;
+        };
         if (type.status().is5xxServerError()) {
             LOG.atWarn().addKeyValue("failure", exception.failure()).log("payment not completed");
         }

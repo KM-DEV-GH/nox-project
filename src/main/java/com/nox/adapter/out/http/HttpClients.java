@@ -1,8 +1,8 @@
-package com.nox.adapter.out.paymentcore;
+package com.nox.adapter.out.http;
 
-import java.util.List;
-import org.springframework.http.client.ClientHttpRequestFactory;
-import org.springframework.http.client.ClientHttpRequestInterceptor;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,31 +20,56 @@ import org.springframework.security.oauth2.core.http.converter.OAuth2AccessToken
 import org.springframework.web.client.RestClient;
 
 /**
- * NOX's own client-credentials token for payment-core (research.md D4): fetched, cached and refreshed
- * by Spring Security, and dropped when payment-core answers 401. The partner's token is never
- * forwarded, and no API key is sent.
+ * Builds the {@link RestClient} every outbound adapter calls through. Calls are bounded by connect and
+ * read timeouts, routed through the SOCKS5 proxy when enabled, and authenticated with NOX's own
+ * client-credentials token: fetched, cached and refreshed by Spring Security, and dropped when the
+ * remote service answers 401. Calls run outside any user's request, so every one uses the same service
+ * principal, and the partner's token is never forwarded.
  */
-final class PaymentCoreAccessToken {
+public final class HttpClients {
 
     private static final Authentication NOX =
             new AnonymousAuthenticationToken("nox", "nox", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
 
-    private PaymentCoreAccessToken() {}
+    private HttpClients() {}
 
-    /** Adds {@code Authorization: Bearer <token>}, with token requests bounded by {@code requestFactory}. */
-    static ClientHttpRequestInterceptor interceptor(
-            ClientRegistration registration, ClientHttpRequestFactory requestFactory) {
+    /** A builder with the base URL, bounded connections and the bearer token; the caller adds anything else. */
+    public static RestClient.Builder restClientBuilder(
+            String baseUrl, HttpClientSettings settings, ClientRegistration registration) {
+        SimpleClientHttpRequestFactory requestFactory = requestFactory(settings);
+        return RestClient.builder()
+                .baseUrl(baseUrl)
+                .requestFactory(requestFactory)
+                .requestInterceptor(accessToken(registration, requestFactory));
+    }
+
+    /** Shared by API and token requests, so the proxy and the timeouts apply to both. */
+    static SimpleClientHttpRequestFactory requestFactory(HttpClientSettings settings) {
+        if (settings.socks5Enabled() && settings.socks5Host().isBlank()) {
+            throw new IllegalArgumentException("SOCKS5 proxy host is required when SOCKS5 is enabled");
+        }
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        if (settings.socks5Enabled()) {
+            factory.setProxy(
+                    new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(settings.socks5Host(), settings.socks5Port())));
+        }
+        factory.setConnectTimeout(Math.toIntExact(settings.connectTimeout().toMillis()));
+        factory.setReadTimeout(Math.toIntExact(settings.readTimeout().toMillis()));
+        return factory;
+    }
+
+    private static OAuth2ClientHttpRequestInterceptor accessToken(
+            ClientRegistration registration, SimpleClientHttpRequestFactory requestFactory) {
         InMemoryClientRegistrationRepository registrations = new InMemoryClientRegistrationRepository(registration);
         OAuth2AuthorizedClientService authorizedClients = new InMemoryOAuth2AuthorizedClientService(registrations);
         RestClientClientCredentialsTokenResponseClient tokenClient =
                 new RestClientClientCredentialsTokenResponseClient();
         tokenClient.setRestClient(RestClient.builder()
                 .requestFactory(requestFactory)
-                .messageConverters(converters -> {
-                    converters.clear();
-                    converters.addAll(List.of(
-                            new FormHttpMessageConverter(), new OAuth2AccessTokenResponseHttpMessageConverter()));
-                })
+                .configureMessageConverters(converters -> converters
+                        .disableDefaults()
+                        .addCustomConverter(new FormHttpMessageConverter())
+                        .addCustomConverter(new OAuth2AccessTokenResponseHttpMessageConverter()))
                 .defaultStatusHandler(new OAuth2ErrorResponseErrorHandler())
                 .build());
         ClientCredentialsOAuth2AuthorizedClientProvider provider =

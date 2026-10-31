@@ -38,7 +38,8 @@ class PaymentTest {
 
     @Test
     void aLimitAllowsOnlyItsEnabledCurrencyWithinInclusiveBounds() {
-        PaymentLimit limit = new PaymentLimit(PaymentType.PAYIN, "EUR", true, new BigDecimal("10"), new BigDecimal("100"));
+        PaymentLimit limit =
+                new PaymentLimit(PaymentType.PAYIN, "EUR", true, new BigDecimal("10"), new BigDecimal("100"));
 
         assertThat(limit.allows(Money.of("10", "EUR"))).isTrue();
         assertThat(limit.allows(Money.of("100.00", "EUR"))).isTrue();
@@ -306,8 +307,7 @@ class PaymentTest {
     }
 
     private static ProcessorPayment processor(PaymentStatus status, Money money) {
-        return new ProcessorPayment(
-                "pc-1", status, money, FEE, NOW.plusSeconds(1), NOW.plusSeconds(600), null);
+        return new ProcessorPayment("pc-1", status, money, FEE, NOW.plusSeconds(1), NOW.plusSeconds(600), null);
     }
 
     private static ProcessorPayment confirmed() {

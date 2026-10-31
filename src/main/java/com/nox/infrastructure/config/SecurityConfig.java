@@ -50,6 +50,7 @@ public class SecurityConfig {
     private static final String[] PARTNER_PAYMENTS = {
         "/api/v1/user-partner-links/*/payments/**", "/api/v1/user-partner-links/by-external-id/*/payments/**"
     };
+
     private static final String[] USER_PARTNER_LINKS = {"/api/v1/user-partner-links/**"};
     private static final String[] API_DOCS = {"/v3/api-docs", "/v3/api-docs/**", "/docs", "/swagger-ui/**"};
 

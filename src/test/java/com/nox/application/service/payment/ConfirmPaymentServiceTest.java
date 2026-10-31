@@ -15,7 +15,6 @@ import com.nox.application.port.out.payment.PaymentProcessorPort.ProcessorResult
 import com.nox.domain.partnerlink.PartnerLink;
 import com.nox.domain.partnerlink.PartnerLinkStatus;
 import com.nox.domain.payment.Money;
-import com.nox.domain.payment.PartnerPaymentAccount;
 import com.nox.domain.payment.Payment;
 import com.nox.domain.payment.PaymentStatus;
 import com.nox.domain.payment.PaymentType;
@@ -93,7 +92,9 @@ class ConfirmPaymentServiceTest {
         PartnerLink foreignLink = link(otherPartner, "external-1", PartnerLinkStatus.CONNECTED);
         payments.insert(awaitingOtp(otherPartner, foreignLink.id(), "pc-foreign", "key-1"));
 
-        assertFailure(command(new LinkReference.ById(otherLink.id()), PAYMENT_CORE_ID, "1"), PaymentFailure.PAYMENT_NOT_FOUND);
+        assertFailure(
+                command(new LinkReference.ById(otherLink.id()), PAYMENT_CORE_ID, "1"),
+                PaymentFailure.PAYMENT_NOT_FOUND);
         assertFailure(command(byId(), "pc-foreign", "1"), PaymentFailure.PAYMENT_NOT_FOUND);
         assertFailure(command(byId(), "pc-unknown", "1"), PaymentFailure.PAYMENT_NOT_FOUND);
         assertFailure(
@@ -107,7 +108,8 @@ class ConfirmPaymentServiceTest {
         PartnerLink revoked = link(PARTNER_ID, "external-3", PartnerLinkStatus.REVOKED);
         payments.insert(awaitingOtp(PARTNER_ID, revoked.id(), "pc-revoked", "key-2"));
 
-        assertFailure(command(new LinkReference.ById(revoked.id()), "pc-revoked", "1"), PaymentFailure.LINK_NOT_CONNECTED);
+        assertFailure(
+                command(new LinkReference.ById(revoked.id()), "pc-revoked", "1"), PaymentFailure.LINK_NOT_CONNECTED);
         assertThat(processor.confirmations()).isEmpty();
     }
 
@@ -179,8 +181,8 @@ class ConfirmPaymentServiceTest {
 
     @Test
     void anUnrecognisedOutcomeIsAmbiguous() {
-        processor.onConfirm(new ProcessorResult.Completed(new ProcessorPayment(
-                PAYMENT_CORE_ID, null, EUR_100, StubPaymentProcessor.FEE, null, null, null)));
+        processor.onConfirm(new ProcessorResult.Completed(
+                new ProcessorPayment(PAYMENT_CORE_ID, null, EUR_100, StubPaymentProcessor.FEE, null, null, null)));
 
         assertFailure(command(byId(), PAYMENT_CORE_ID, "123456"), PaymentFailure.UNRESOLVED);
         assertThat(payments.findByPaymentCoreId(PAYMENT_CORE_ID).orElseThrow().status())
@@ -269,7 +271,7 @@ class ConfirmPaymentServiceTest {
 
     private void assertFailure(Command command, PaymentFailure failure) {
         assertThatThrownBy(() -> service.confirm(command))
-                .isInstanceOfSatisfying(PaymentException.class, e -> assertThat(e.failure())
-                        .isEqualTo(failure));
+                .isInstanceOfSatisfying(
+                        PaymentException.class, e -> assertThat(e.failure()).isEqualTo(failure));
     }
 }

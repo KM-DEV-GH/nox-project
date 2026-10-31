@@ -34,7 +34,10 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
         paymentCore.initiationAccepted(PaymentType.PAYIN, reference, paymentCoreId, "123.45", "EUR");
 
         EntityExchangeResult<String> result = api.initiate(
-                partner, PaymentApi.byLinkId(link.linkId()), "key-1", PaymentApi.body("PAYIN", "123.45", "EUR", reference));
+                partner,
+                PaymentApi.byLinkId(link.linkId()),
+                "key-1",
+                PaymentApi.body("PAYIN", "123.45", "EUR", reference));
 
         assertThat(result.getStatus().value()).isEqualTo(201);
         JsonNode body = PaymentApi.json(result);
@@ -58,7 +61,8 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
         Payment stored = payments.findByPaymentCoreId(paymentCoreId).orElseThrow();
         assertThat(stored.accountIdSnapshot()).isEqualTo(ACCOUNT_ID);
         assertThat(stored.providerUserIdSnapshot()).isEqualTo(PROVIDER_USER_ID);
-        LoggedRequest sent = paymentCore.initiations(PaymentType.PAYIN, reference).getFirst();
+        LoggedRequest sent =
+                paymentCore.initiations(PaymentType.PAYIN, reference).getFirst();
         assertThat(sent.getHeader("Authorization")).isEqualTo("Bearer " + PaymentCoreWireMockSupport.ACCESS_TOKEN);
         assertThat(sent.containsHeader("api-key")).isFalse();
         assertThat(sent.getHeader("Idempotency-Key")).isEqualTo(stored.id().toString());
@@ -70,23 +74,33 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
 
     @Test
     void initiatesAPayinByExternalLinkIdOnTheMostRecentEstablishedLink() {
-        EstablishedLink newer = fixtures.link(partner, "CONNECTED", link.externalId(), Instant.now().plusSeconds(5));
+        EstablishedLink newer = fixtures.link(
+                partner, "CONNECTED", link.externalId(), Instant.now().plusSeconds(5));
         String reference = PaymentCoreWireMockSupport.uniqueReference();
-        paymentCore.initiationAccepted(PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "50", "EUR");
+        paymentCore.initiationAccepted(
+                PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "50", "EUR");
 
         EntityExchangeResult<String> result = api.initiate(
-                partner, PaymentApi.byExternalId(link.externalId()), "key-1", PaymentApi.body("PAYIN", "50", "EUR", reference));
+                partner,
+                PaymentApi.byExternalId(link.externalId()),
+                "key-1",
+                PaymentApi.body("PAYIN", "50", "EUR", reference));
 
         assertThat(result.getStatus().value()).isEqualTo(201);
-        assertThat(PaymentApi.json(result).at("/data/userLinkId").asString()).isEqualTo(newer.linkId().toString());
-        assertThat(paymentCore.initiations(PaymentType.PAYIN, reference).getFirst().getBodyAsString())
+        assertThat(PaymentApi.json(result).at("/data/userLinkId").asString())
+                .isEqualTo(newer.linkId().toString());
+        assertThat(paymentCore
+                        .initiations(PaymentType.PAYIN, reference)
+                        .getFirst()
+                        .getBodyAsString())
                 .contains(newer.userId());
     }
 
     @Test
     void anIdenticalRetryReturnsTheSamePaymentWithOneUpstreamCall() {
         String reference = PaymentCoreWireMockSupport.uniqueReference();
-        paymentCore.initiationAccepted(PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "100", "EUR");
+        paymentCore.initiationAccepted(
+                PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "100", "EUR");
         String body = PaymentApi.body("PAYIN", "100", "EUR", reference);
 
         EntityExchangeResult<String> first = api.initiate(partner, PaymentApi.byLinkId(link.linkId()), "key-1", body);
@@ -103,7 +117,8 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
     @Test
     void reusingAKeyWithChangedDetailsIsAConflict() {
         String reference = PaymentCoreWireMockSupport.uniqueReference();
-        paymentCore.initiationAccepted(PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "100", "EUR");
+        paymentCore.initiationAccepted(
+                PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "100", "EUR");
         String path = PaymentApi.byLinkId(link.linkId());
         api.initiate(partner, path, "key-1", PaymentApi.body("PAYIN", "100", "EUR", reference));
 
@@ -119,12 +134,15 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
     @Test
     void reusingAnExternalIdWithAnotherKeyIsAConflict() {
         String reference = PaymentCoreWireMockSupport.uniqueReference();
-        paymentCore.initiationAccepted(PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "100", "EUR");
+        paymentCore.initiationAccepted(
+                PaymentType.PAYIN, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "100", "EUR");
         String path = PaymentApi.byLinkId(link.linkId());
         String body = PaymentApi.body("PAYIN", "100", "EUR", reference);
 
-        assertThat(api.initiate(partner, path, "key-1", body).getStatus().value()).isEqualTo(201);
-        assertThat(api.initiate(partner, path, "key-1", body).getStatus().value()).isEqualTo(200);
+        assertThat(api.initiate(partner, path, "key-1", body).getStatus().value())
+                .isEqualTo(201);
+        assertThat(api.initiate(partner, path, "key-1", body).getStatus().value())
+                .isEqualTo(200);
         assertProblem(api.initiate(partner, path, "key-2", body), 409, "external_id_conflict", path);
         String byExternal = PaymentApi.byExternalId(link.externalId());
         assertProblem(api.initiate(partner, byExternal, "key-3", body), 409, "external_id_conflict", byExternal);
@@ -144,7 +162,11 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
             PaymentApi.body("PAYIN", "0.99", "EUR", "REF-LOW-" + UUID.randomUUID()),
             PaymentApi.body("PAYIN", "1000.01", "EUR", "REF-HIGH-" + UUID.randomUUID())
         }) {
-            assertProblem(api.initiate(partner, path, UUID.randomUUID().toString(), body), 422, "payment_limit_exceeded", path);
+            assertProblem(
+                    api.initiate(partner, path, UUID.randomUUID().toString(), body),
+                    422,
+                    "payment_limit_exceeded",
+                    path);
         }
         assertThat(paymentRows(partner)).isZero();
     }
@@ -196,7 +218,8 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
         assertProblem(api.post(TOKENS.user("alice"), partner.clientId(), path, "key-1", body), 403, "forbidden", path);
         assertProblem(api.post(TOKENS.internalBff(), partner.clientId(), path, "key-1", body), 403, "forbidden", path);
         assertProblem(api.post(TOKENS.bff(), null, path, "key-1", body), 403, "forbidden", path);
-        assertProblem(api.post(TOKENS.bff(), partners.suspended().clientId(), path, "key-1", body), 403, "forbidden", path);
+        assertProblem(
+                api.post(TOKENS.bff(), partners.suspended().clientId(), path, "key-1", body), 403, "forbidden", path);
         assertThat(paymentRows(partner)).isZero();
     }
 
@@ -205,9 +228,21 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
         String path = PaymentApi.byLinkId(link.linkId());
         String reference = PaymentCoreWireMockSupport.uniqueReference();
 
-        assertProblem(api.initiate(partner, path, null, PaymentApi.body("PAYIN", "50", "EUR", reference)), 400, "bad_request", path);
-        assertProblem(api.initiate(partner, path, "k", PaymentApi.body("REFUND", "50", "EUR", reference)), 400, "bad_request", path);
-        assertProblem(api.initiate(partner, path, "k", PaymentApi.body("PAYIN", "-5", "EUR", reference)), 400, "bad_request", path);
+        assertProblem(
+                api.initiate(partner, path, null, PaymentApi.body("PAYIN", "50", "EUR", reference)),
+                400,
+                "bad_request",
+                path);
+        assertProblem(
+                api.initiate(partner, path, "k", PaymentApi.body("REFUND", "50", "EUR", reference)),
+                400,
+                "bad_request",
+                path);
+        assertProblem(
+                api.initiate(partner, path, "k", PaymentApi.body("PAYIN", "-5", "EUR", reference)),
+                400,
+                "bad_request",
+                path);
         assertProblem(api.initiate(partner, path, "k", """
                 {"type":"PAYIN","money":{"amount":50,"currencyCode":"EUR"},"externalId":"x",
                  "transactionReference":"%s","accountId":"someone-elses"}""".formatted(reference)), 400, "bad_request", path);
@@ -227,7 +262,9 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
                 422,
                 "payment_rejected",
                 path);
-        assertThat(payments.findByPartnerAndIdempotencyKey(partner.id(), "key-1").orElseThrow().status())
+        assertThat(payments.findByPartnerAndIdempotencyKey(partner.id(), "key-1")
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.FAILED);
     }
 
@@ -243,7 +280,9 @@ class PartnerPaymentPayinIT extends PartnerPaymentIntegrationSupport {
 
         assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofSeconds(6));
         assertProblem(result, 503, "payment_unresolved", path);
-        assertThat(payments.findByPartnerAndIdempotencyKey(partner.id(), "key-1").orElseThrow().status())
+        assertThat(payments.findByPartnerAndIdempotencyKey(partner.id(), "key-1")
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.INITIATION_UNKNOWN);
     }
 }

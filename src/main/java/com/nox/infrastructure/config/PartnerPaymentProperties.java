@@ -18,7 +18,8 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties("nox.payment")
 public record PartnerPaymentProperties(
-        @DefaultValue("") String payinMethod, @DefaultValue("") String payoutMethod) {
+        @DefaultValue("") String payinMethod,
+        @DefaultValue("") String payoutMethod) {
 
     /** The configured method per type; a type without one is absent. */
     public Map<PaymentType, String> methods() {

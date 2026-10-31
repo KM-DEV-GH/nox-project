@@ -51,8 +51,11 @@ public abstract class PartnerPaymentIntegrationSupport extends KeycloakContainer
         String reference = PaymentCoreWireMockSupport.uniqueReference();
         String paymentCoreId = PaymentCoreWireMockSupport.uniquePaymentCoreId();
         paymentCore.initiationAccepted(type, reference, paymentCoreId, amount, "EUR");
-        EntityExchangeResult<String> created =
-                api.initiate(partner, payments, UUID.randomUUID().toString(), PaymentApi.body(type.name(), amount, "EUR", reference));
+        EntityExchangeResult<String> created = api.initiate(
+                partner,
+                payments,
+                UUID.randomUUID().toString(),
+                PaymentApi.body(type.name(), amount, "EUR", reference));
         if (created.getStatus().value() != 201) {
             throw new IllegalStateException("Initiation failed: " + created.getResponseBody());
         }

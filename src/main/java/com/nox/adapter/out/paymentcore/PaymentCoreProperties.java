@@ -1,7 +1,8 @@
 package com.nox.adapter.out.paymentcore;
 
+import com.nox.adapter.out.http.CircuitBreakerSettings;
+import com.nox.adapter.out.http.HttpClientSettings;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -31,24 +32,17 @@ import org.springframework.validation.annotation.Validated;
 public record PaymentCoreProperties(
         @NotBlank String baseUrl,
         @NotBlank @DefaultValue("payment-core") String registrationId,
-        @NotNull @DurationMin(millis = 1) @DefaultValue("2s") Duration connectTimeout,
-        @NotNull @DurationMin(millis = 1) @DefaultValue("5s") Duration readTimeout,
+
+        @NotNull @DurationMin(millis = 1) @DefaultValue("2s")
+        Duration connectTimeout,
+
+        @NotNull @DurationMin(millis = 1) @DefaultValue("5s")
+        Duration readTimeout,
+
         @Min(1) @DefaultValue("3") int maxAttempts,
         @NotNull @DefaultValue("200ms") Duration backoff,
-        @Valid @NotNull @DefaultValue CircuitBreaker circuitBreaker,
+        @Valid @NotNull @DefaultValue CircuitBreakerSettings circuitBreaker,
         @DefaultValue("false") boolean socks5Enabled,
         @DefaultValue("") String socks5Host,
-        @Min(1) @DefaultValue("1080") int socks5Port) {
-
-    /**
-     * @param failureRateThreshold failure percentage that opens the circuit
-     * @param slidingWindowSize calls considered for the failure rate
-     * @param minimumNumberOfCalls calls needed before the rate is evaluated
-     * @param waitDurationInOpenState time the circuit stays open before probing again
-     */
-    public record CircuitBreaker(
-            @Min(1) @Max(100) @DefaultValue("50") int failureRateThreshold,
-            @Min(1) @DefaultValue("20") int slidingWindowSize,
-            @Min(1) @DefaultValue("10") int minimumNumberOfCalls,
-            @NotNull @DurationMin(millis = 1) @DefaultValue("30s") Duration waitDurationInOpenState) {}
-}
+        @Min(1) @DefaultValue("1080") int socks5Port)
+        implements HttpClientSettings {}

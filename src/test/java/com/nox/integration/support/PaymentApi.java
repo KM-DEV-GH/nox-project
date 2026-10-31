@@ -45,8 +45,7 @@ public class PaymentApi {
     public static String body(String type, String amount, String currency, String reference) {
         return """
                 {"type":"%s","money":{"amount":%s,"currencyCode":"%s"},"externalId":"tx-%s",
-                 "transactionReference":"%s","description":"Deposit to PAM wallet"}"""
-                .formatted(type, amount, currency, reference, reference);
+                 "transactionReference":"%s","description":"Deposit to PAM wallet"}""".formatted(type, amount, currency, reference, reference);
     }
 
     public EntityExchangeResult<String> initiate(Partner partner, String payments, String key, String body) {

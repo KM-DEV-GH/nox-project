@@ -114,9 +114,14 @@
             <artifactId>spring-modulith-events-amqp</artifactId>
         </dependency>
         <dependency>
-            <!-- Circuit breaker for payment-core calls (constitution Principle XIII) -->
+            <!-- Circuit breaker and retry for outbound HTTP calls (constitution Principle XIII) -->
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-retry</artifactId>
             <version>${resilience4j.version}</version>
         </dependency>
         <dependency>

@@ -23,7 +23,8 @@ class PartnerPaymentPayoutIT extends PartnerPaymentIntegrationSupport {
 
     @Test
     void initiatesAPayoutThroughEitherIdentifier() {
-        for (String path : new String[] {PaymentApi.byLinkId(link.linkId()), PaymentApi.byExternalId(link.externalId())}) {
+        for (String path :
+                new String[] {PaymentApi.byLinkId(link.linkId()), PaymentApi.byExternalId(link.externalId())}) {
             String reference = PaymentCoreWireMockSupport.uniqueReference();
             String paymentCoreId = PaymentCoreWireMockSupport.uniquePaymentCoreId();
             paymentCore.initiationAccepted(PaymentType.PAYOUT, reference, paymentCoreId, "75", "EUR");
@@ -36,7 +37,8 @@ class PartnerPaymentPayoutIT extends PartnerPaymentIntegrationSupport {
             ContractAssertions.assertMatchesSchema(body, "PaymentEnvelope");
             assertThat(body.at("/data/type").asString()).isEqualTo("PAYOUT");
             assertThat(body.at("/data/paymentId").asString()).isEqualTo(paymentCoreId);
-            assertThat(body.at("/data/userLinkId").asString()).isEqualTo(link.linkId().toString());
+            assertThat(body.at("/data/userLinkId").asString())
+                    .isEqualTo(link.linkId().toString());
             assertThat(body.at("/data/status").asString()).isEqualTo("AWAITING_OTP");
             assertThat(body.at("/data/fee/amount").decimalValue()).isEqualByComparingTo("1.5");
             assertThat(paymentCore.initiations(PaymentType.PAYIN, reference)).isEmpty();
@@ -62,7 +64,11 @@ class PartnerPaymentPayoutIT extends PartnerPaymentIntegrationSupport {
             PaymentApi.body("PAYOUT", "0.5", "EUR", PaymentCoreWireMockSupport.uniqueReference()),
             PaymentApi.body("PAYOUT", "1000.01", "EUR", PaymentCoreWireMockSupport.uniqueReference())
         }) {
-            assertProblem(api.initiate(partner, path, UUID.randomUUID().toString(), body), 422, "payment_limit_exceeded", path);
+            assertProblem(
+                    api.initiate(partner, path, UUID.randomUUID().toString(), body),
+                    422,
+                    "payment_limit_exceeded",
+                    path);
         }
         assertThat(paymentRows(partner)).isZero();
     }
@@ -70,7 +76,8 @@ class PartnerPaymentPayoutIT extends PartnerPaymentIntegrationSupport {
     @Test
     void aPayoutRetryIsIdempotent() {
         String reference = PaymentCoreWireMockSupport.uniqueReference();
-        paymentCore.initiationAccepted(PaymentType.PAYOUT, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "75", "EUR");
+        paymentCore.initiationAccepted(
+                PaymentType.PAYOUT, reference, PaymentCoreWireMockSupport.uniquePaymentCoreId(), "75", "EUR");
         String path = PaymentApi.byExternalId(link.externalId());
         String body = PaymentApi.body("PAYOUT", "75", "EUR", reference);
 

@@ -11,6 +11,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import com.nox.adapter.out.http.CircuitBreakerSettings;
 import com.nox.application.port.out.partnerlink.UserLookupResult;
 import com.nox.integration.support.OwlWireMockSupport;
 import com.nox.support.CapturedLogs;
@@ -43,6 +44,11 @@ class OwlUserLookupAdapterTest {
         server.start();
         owl = new OwlWireMockSupport(new WireMock(server.port()), API_KEY);
         owl.stubTokenEndpoint();
+        adapter = adapter(new CircuitBreakerSettings(50, 20, 10, Duration.ofSeconds(30)));
+        logs = CapturedLogs.of(OwlUserLookupAdapter.class);
+    }
+
+    private OwlUserLookupAdapter adapter(CircuitBreakerSettings circuitBreaker) {
         ClientRegistration registration = ClientRegistration.withRegistrationId("owl")
                 .clientId("nox-test")
                 .clientSecret(CLIENT_SECRET)
@@ -56,11 +62,11 @@ class OwlUserLookupAdapterTest {
                 READ_TIMEOUT,
                 MAX_ATTEMPTS,
                 Duration.ofMillis(10),
+                circuitBreaker,
                 false,
                 "",
                 1080);
-        adapter = new OwlUserLookupAdapter(properties, new InMemoryClientRegistrationRepository(registration));
-        logs = CapturedLogs.of(OwlUserLookupAdapter.class);
+        return new OwlUserLookupAdapter(properties, new InMemoryClientRegistrationRepository(registration));
     }
 
     @AfterEach
@@ -162,6 +168,21 @@ class OwlUserLookupAdapterTest {
         assertThat(logs.events())
                 .anySatisfy(event -> assertThat(event.getLevel()).isEqualTo(Level.ERROR));
         assertNoSecretsLogged(email);
+    }
+
+    /** Once open, the circuit refuses lookups without contacting Owl. */
+    @Test
+    void anOpenCircuitFailsLookupsWithoutSendingThem() {
+        adapter = adapter(new CircuitBreakerSettings(50, 2, 2, Duration.ofMinutes(1)));
+        String failing = OwlWireMockSupport.uniqueEmail();
+        owl.status(failing, 503);
+        adapter.lookUpByEmail(failing);
+        String next = OwlWireMockSupport.uniqueEmail();
+        owl.userFound(next, "user-1", "keycloak-1");
+
+        assertThat(adapter.lookUpByEmail(next)).isEqualTo(new UserLookupResult.Failed());
+        assertThat(owl.lookupsFor(next)).isZero();
+        assertNoSecretsLogged(next);
     }
 
     @Test

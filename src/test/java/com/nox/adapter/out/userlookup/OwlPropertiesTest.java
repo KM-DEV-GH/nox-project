@@ -2,6 +2,7 @@ package com.nox.adapter.out.userlookup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.nox.adapter.out.http.CircuitBreakerSettings;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -29,6 +30,8 @@ class OwlPropertiesTest {
             assertThat(properties.readTimeout()).isEqualTo(Duration.ofSeconds(3));
             assertThat(properties.maxAttempts()).isEqualTo(4);
             assertThat(properties.backoff()).isEqualTo(Duration.ofMillis(500));
+            assertThat(properties.circuitBreaker())
+                    .isEqualTo(new CircuitBreakerSettings(50, 20, 10, Duration.ofSeconds(30)));
             assertThat(properties.socks5Enabled()).isFalse();
             assertThat(properties.socks5Host()).isEmpty();
             assertThat(properties.socks5Port()).isEqualTo(1080);
@@ -56,6 +59,7 @@ class OwlPropertiesTest {
                 Duration.ofSeconds(3),
                 4,
                 Duration.ofMillis(500),
+                new CircuitBreakerSettings(50, 20, 10, Duration.ofSeconds(30)),
                 false,
                 "",
                 1080);

@@ -22,7 +22,8 @@ public record PaymentInitiationRequest(
 
     /** Contract {@code Money}, with a strictly positive amount. */
     public record MoneyRequest(
-            @NotNull @Positive BigDecimal amount, @NotBlank @Size(min = 3, max = 12) String currencyCode) {
+            @NotNull @Positive BigDecimal amount,
+            @NotBlank @Size(min = 3, max = 12) String currencyCode) {
 
         Money toMoney() {
             return new Money(amount, currencyCode);

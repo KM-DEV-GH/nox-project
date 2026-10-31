@@ -7,6 +7,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import com.nox.adapter.out.http.CircuitBreakerSettings;
 import com.nox.application.port.out.payment.PaymentProcessorPort.CancellationRequest;
 import com.nox.application.port.out.payment.PaymentProcessorPort.ConfirmationRequest;
 import com.nox.application.port.out.payment.PaymentProcessorPort.InitiationRequest;
@@ -81,9 +82,11 @@ class PaymentCoreAdapterTest {
                         Instant.parse(PaymentCoreWireMockSupport.CREATED_AT),
                         Instant.parse(PaymentCoreWireMockSupport.EXPIRES_AT),
                         null)));
-        LoggedRequest sent = paymentCore.initiations(PaymentType.PAYIN, reference).getFirst();
+        LoggedRequest sent =
+                paymentCore.initiations(PaymentType.PAYIN, reference).getFirst();
         assertThat(sent.getHeader("Authorization")).isEqualTo("Bearer " + PaymentCoreWireMockSupport.ACCESS_TOKEN);
-        assertThat(sent.getHeader("Idempotency-Key")).isEqualTo(request.idempotencyKey().toString());
+        assertThat(sent.getHeader("Idempotency-Key"))
+                .isEqualTo(request.idempotencyKey().toString());
         assertThat(sent.containsHeader("api-key")).isFalse();
         JsonNode body = JSON.readTree(sent.getBodyAsString());
         assertThat(body.at("/provider/userId").asString()).isEqualTo("provider-1");
@@ -106,12 +109,11 @@ class PaymentCoreAdapterTest {
 
         ProcessorResult result = adapter.initiate(request(PaymentType.PAYOUT, reference));
 
-        assertThat(result)
-                .isInstanceOfSatisfying(ProcessorResult.Completed.class, completed -> {
-                    assertThat(completed.payment().paymentCoreId()).isEqualTo("pc-out");
-                    assertThat(completed.payment().status()).isEqualTo(PaymentStatus.AWAITING_OTP);
-                    assertThat(completed.payment().fee()).isEqualTo(Money.of("1.5", "EUR"));
-                });
+        assertThat(result).isInstanceOfSatisfying(ProcessorResult.Completed.class, completed -> {
+            assertThat(completed.payment().paymentCoreId()).isEqualTo("pc-out");
+            assertThat(completed.payment().status()).isEqualTo(PaymentStatus.AWAITING_OTP);
+            assertThat(completed.payment().fee()).isEqualTo(Money.of("1.5", "EUR"));
+        });
         assertThat(paymentCore.initiations(PaymentType.PAYIN, reference)).isEmpty();
         JsonNode body = JSON.readTree(paymentCore
                 .initiations(PaymentType.PAYOUT, reference)
@@ -178,9 +180,9 @@ class PaymentCoreAdapterTest {
         ProcessorResult result = adapter.initiate(request(PaymentType.PAYIN, reference));
 
         assertThat(result)
-                .isInstanceOfSatisfying(ProcessorResult.Completed.class, completed -> assertThat(
-                                completed.payment().status())
-                        .isNull());
+                .isInstanceOfSatisfying(
+                        ProcessorResult.Completed.class,
+                        completed -> assertThat(completed.payment().status()).isNull());
     }
 
     /** Once open, the circuit refuses calls without contacting payment-core. */
@@ -207,12 +209,11 @@ class PaymentCoreAdapterTest {
 
         ProcessorResult result = adapter.confirm(confirmation(paymentCoreId, "123456"));
 
-        assertThat(result)
-                .isInstanceOfSatisfying(ProcessorResult.Completed.class, completed -> {
-                    assertThat(completed.payment().status()).isEqualTo(PaymentStatus.CONFIRMED);
-                    assertThat(completed.payment().confirmedAt())
-                            .isEqualTo(Instant.parse(PaymentCoreWireMockSupport.CONFIRMED_AT));
-                });
+        assertThat(result).isInstanceOfSatisfying(ProcessorResult.Completed.class, completed -> {
+            assertThat(completed.payment().status()).isEqualTo(PaymentStatus.CONFIRMED);
+            assertThat(completed.payment().confirmedAt())
+                    .isEqualTo(Instant.parse(PaymentCoreWireMockSupport.CONFIRMED_AT));
+        });
         LoggedRequest sent = paymentCore.confirmations(paymentCoreId).getFirst();
         assertThat(sent.getHeader("Authorization")).isEqualTo("Bearer " + PaymentCoreWireMockSupport.ACCESS_TOKEN);
         assertThat(sent.containsHeader("api-key")).isFalse();
@@ -246,7 +247,8 @@ class PaymentCoreAdapterTest {
         assertThat(paymentCore.confirmations(paymentCoreId))
                 .hasSize(MAX_ATTEMPTS)
                 .extracting(LoggedRequest::getBodyAsString)
-                .containsOnly(paymentCore.confirmations(paymentCoreId).getFirst().getBodyAsString());
+                .containsOnly(
+                        paymentCore.confirmations(paymentCoreId).getFirst().getBodyAsString());
         assertThat(logs.allText()).doesNotContain("123456");
     }
 
@@ -259,9 +261,9 @@ class PaymentCoreAdapterTest {
         ProcessorResult result = adapter.cancel(cancellation(paymentCoreId));
 
         assertThat(result)
-                .isInstanceOfSatisfying(ProcessorResult.Completed.class, completed -> assertThat(
-                                completed.payment().status())
-                        .isEqualTo(PaymentStatus.CANCELLED));
+                .isInstanceOfSatisfying(
+                        ProcessorResult.Completed.class,
+                        completed -> assertThat(completed.payment().status()).isEqualTo(PaymentStatus.CANCELLED));
         LoggedRequest sent = paymentCore.cancellations(paymentCoreId).getFirst();
         assertThat(sent.getHeader("Authorization")).isEqualTo("Bearer " + PaymentCoreWireMockSupport.ACCESS_TOKEN);
         assertThat(sent.containsHeader("api-key")).isFalse();
@@ -330,7 +332,8 @@ class PaymentCoreAdapterTest {
         return adapter(minimumNumberOfCalls, false, "", 1080);
     }
 
-    private PaymentCoreAdapter adapter(int minimumNumberOfCalls, boolean socks5Enabled, String socks5Host, int socks5Port) {
+    private PaymentCoreAdapter adapter(
+            int minimumNumberOfCalls, boolean socks5Enabled, String socks5Host, int socks5Port) {
         ClientRegistration registration = ClientRegistration.withRegistrationId("payment-core")
                 .clientId("nox-payments-test")
                 .clientSecret("test-client-secret")
@@ -344,8 +347,7 @@ class PaymentCoreAdapterTest {
                 READ_TIMEOUT,
                 MAX_ATTEMPTS,
                 Duration.ofMillis(10),
-                new PaymentCoreProperties.CircuitBreaker(
-                        50, minimumNumberOfCalls, minimumNumberOfCalls, Duration.ofMinutes(1)),
+                new CircuitBreakerSettings(50, minimumNumberOfCalls, minimumNumberOfCalls, Duration.ofMinutes(1)),
                 socks5Enabled,
                 socks5Host,
                 socks5Port);

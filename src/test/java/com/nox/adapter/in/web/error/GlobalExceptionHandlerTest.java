@@ -108,8 +108,7 @@ class GlobalExceptionHandlerTest {
         "PROCESSOR_UNAVAILABLE, 503, payment_processor_unavailable",
         "UNRESOLVED, 503, payment_unresolved"
     })
-    void paymentFailuresAreTheirDocumentedProblems(PaymentFailure failure, int status, String title)
-            throws Exception {
+    void paymentFailuresAreTheirDocumentedProblems(PaymentFailure failure, int status, String title) throws Exception {
         mockMvc.perform(get("/sample/payment/" + failure.name()))
                 .andExpect(status().is(status))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))

@@ -176,8 +176,10 @@ class PaymentPersistenceIT extends KeycloakContainerSupport {
 
         assertThatThrownBy(() -> payments.insert(newPayment("key-" + UUID.randomUUID(), first.externalId())))
                 .isInstanceOf(DuplicateExternalIdException.class);
-        assertThat(payments.existsByPartnerAndExternalId(partner.id(), first.externalId())).isTrue();
-        assertThat(payments.existsByPartnerAndExternalId(partner.id(), "tx-unused")).isFalse();
+        assertThat(payments.existsByPartnerAndExternalId(partner.id(), first.externalId()))
+                .isTrue();
+        assertThat(payments.existsByPartnerAndExternalId(partner.id(), "tx-unused"))
+                .isFalse();
 
         Partner other = new PartnerFixtures(jdbc).active();
         EstablishedLink otherLink = fixtures.connectedLink(other);
@@ -215,15 +217,19 @@ class PaymentPersistenceIT extends KeycloakContainerSupport {
         Payment stored = payments.insert(newPayment("key-" + UUID.randomUUID()));
         stored.recordInitiation(processor("pc-" + UUID.randomUUID()), NOW);
         payments.save(stored);
-        Payment confirming = payments.findByPaymentCoreId(stored.paymentCoreId()).orElseThrow();
-        Payment cancelling = payments.findByPaymentCoreId(stored.paymentCoreId()).orElseThrow();
+        Payment confirming =
+                payments.findByPaymentCoreId(stored.paymentCoreId()).orElseThrow();
+        Payment cancelling =
+                payments.findByPaymentCoreId(stored.paymentCoreId()).orElseThrow();
 
         assertThat(confirming.beginConfirmation(NOW)).isTrue();
         assertThat(cancelling.beginCancellation(NOW)).isTrue();
         payments.save(confirming);
 
         assertThatThrownBy(() -> payments.save(cancelling)).isInstanceOf(ConcurrentPaymentUpdateException.class);
-        assertThat(payments.findByPaymentCoreId(stored.paymentCoreId()).orElseThrow().status())
+        assertThat(payments.findByPaymentCoreId(stored.paymentCoreId())
+                        .orElseThrow()
+                        .status())
                 .isEqualTo(PaymentStatus.CONFIRMING);
     }
 

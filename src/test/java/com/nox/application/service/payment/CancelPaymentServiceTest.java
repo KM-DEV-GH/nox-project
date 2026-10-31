@@ -87,8 +87,8 @@ class CancelPaymentServiceTest {
 
         assertThatThrownBy(() -> confirm.confirm(
                         new ConfirmPaymentUseCase.Command(PARTNER_ID, byId(), PAYMENT_CORE_ID, "123456")))
-                .isInstanceOfSatisfying(PaymentException.class, e -> assertThat(e.failure())
-                        .isEqualTo(PaymentFailure.NOT_ACTIONABLE));
+                .isInstanceOfSatisfying(
+                        PaymentException.class, e -> assertThat(e.failure()).isEqualTo(PaymentFailure.NOT_ACTIONABLE));
         assertThat(processor.confirmations()).isEmpty();
     }
 
@@ -139,7 +139,8 @@ class CancelPaymentServiceTest {
     void aPaymentOfAnotherLinkOrPartnerIsNotCancelled() {
         PartnerLink otherLink = link(PARTNER_ID, "external-2", PartnerLinkStatus.CONNECTED);
 
-        assertFailure(command(new LinkReference.ById(otherLink.id()), PAYMENT_CORE_ID), PaymentFailure.PAYMENT_NOT_FOUND);
+        assertFailure(
+                command(new LinkReference.ById(otherLink.id()), PAYMENT_CORE_ID), PaymentFailure.PAYMENT_NOT_FOUND);
         assertFailure(new Command(UUID.randomUUID(), byId(), PAYMENT_CORE_ID), PaymentFailure.LINK_NOT_FOUND);
         assertThat(processor.cancellations()).isEmpty();
     }
@@ -167,7 +168,8 @@ class CancelPaymentServiceTest {
     /** NOX reports what payment-core says, even if it is not a cancellation. */
     @Test
     void paymentCoresAuthoritativeOutcomeIsRecorded() {
-        processor.onCancel(request -> StubPaymentProcessor.outcome(PAYMENT_CORE_ID, PaymentStatus.EXPIRED, request.money()));
+        processor.onCancel(
+                request -> StubPaymentProcessor.outcome(PAYMENT_CORE_ID, PaymentStatus.EXPIRED, request.money()));
 
         assertThat(service.cancel(command(byId(), PAYMENT_CORE_ID)).status()).isEqualTo(PaymentStatus.EXPIRED);
     }
@@ -199,7 +201,7 @@ class CancelPaymentServiceTest {
 
     private void assertFailure(Command command, PaymentFailure failure) {
         assertThatThrownBy(() -> service.cancel(command))
-                .isInstanceOfSatisfying(PaymentException.class, e -> assertThat(e.failure())
-                        .isEqualTo(failure));
+                .isInstanceOfSatisfying(
+                        PaymentException.class, e -> assertThat(e.failure()).isEqualTo(failure));
     }
 }
